@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
@@ -6,6 +6,9 @@
   <ItemGroup>
     <None Include="index.html" />
     <Compile Include="Extensions.fs" />
+    <Compile Include="Library.fs" />
+    <Compile Include="Bootstrap.fs" />
+    <Compile Include="Calculator.fs" />
     <Compile Include="ElmishCounter.fs" />
     <Compile Include="Components.fs" />
     <Compile Include="Main.fs" />
