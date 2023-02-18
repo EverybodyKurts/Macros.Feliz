@@ -1,0 +1,8 @@
+node_modules
+packates
+paket-files
+
+src/bin
+src/obj
+
+tests/obj
