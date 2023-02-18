@@ -40,6 +40,7 @@ type Components =
                 | [ "hello" ] -> Components.HelloWorld()
                 | [ "counter" ] -> Components.Counter()
                 | [ "elmish" ] -> Elmish.Counter()
+                | [ "macros" ] -> Calculator.View()
                 | otherwise -> Html.h1 "Not found"
             ]
         ]
