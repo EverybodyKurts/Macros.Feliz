@@ -16,9 +16,9 @@ module Calculator =
         | ConvertAmountToKg
         | ConvertAmountToLb
 
-    type State = { Weight: Mass option; MassUnit: MassUnit }
+    type State = { Weight: Mass option; WeightUnit: MassUnit }
 
-    let init() = { Weight = None; MassUnit = MassUnit.Kg }, Cmd.none
+    let init() = { Weight = None; WeightUnit = MassUnit.Kg }, Cmd.none
 
     let update (msg: Msg) (state: State) : State * Cmd<'a> =
         match msg with
@@ -29,20 +29,20 @@ module Calculator =
 
                     return w.UpdateAmount(amount)
                 }
-                |> Option.defaultValue (Mass.Create(amount, state.MassUnit))
+                |> Option.defaultValue (Mass.Create(amount, state.WeightUnit))
 
             { state with Weight = Some weight }, Cmd.none
 
         | ConvertAmountToKg ->
             { state with
                 Weight = state.Weight |> Option.map(fun w -> w.ToKg())
-                MassUnit = MassUnit.Kg
+                WeightUnit = MassUnit.Kg
             }, Cmd.none
 
         | ConvertAmountToLb ->
             { state with
                 Weight = state.Weight |> Option.map(fun w -> w.ToLb())
-                MassUnit = MassUnit.Lb
+                WeightUnit = MassUnit.Lb
             }, Cmd.none
 
     type WeightHtml = {
@@ -142,7 +142,7 @@ module Calculator =
 
         let weightHtml = {
             Weight =  state.Weight
-            WeightUnit = state.MassUnit
+            WeightUnit = state.WeightUnit
             Dispatch = dispatch
         }
 
