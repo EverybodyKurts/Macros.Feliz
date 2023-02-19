@@ -12,20 +12,16 @@ open Library.Domain
 
 module Calculator =
     type Msg =
-        | Increment
-        | Decrement
         | UpdateMassAmount of float
         | ConvertAmountToKg
         | ConvertAmountToLb
 
-    type State = { Count: int; Weight: Mass option; MassUnit: MassUnit }
+    type State = { Weight: Mass option; MassUnit: MassUnit }
 
-    let init() = { Count = 0; Weight = None; MassUnit = MassUnit.Kg }, Cmd.none
+    let init() = { Weight = None; MassUnit = MassUnit.Kg }, Cmd.none
 
     let update (msg: Msg) (state: State) : State * Cmd<'a> =
         match msg with
-        | Increment -> { state with Count = state.Count + 1 }, Cmd.none
-        | Decrement -> { state with Count = state.Count - 1 }, Cmd.none
         | UpdateMassAmount amount ->
             let weight =
                 option {
