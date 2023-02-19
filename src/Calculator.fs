@@ -5,49 +5,54 @@ open Feliz.UseElmish
 open Fable.React
 open Elmish
 
-open FsToolkit.ErrorHandling
+open Browser
 
 open Bootstrap
-open Library.Domain
+open Library.Form
 
 module Calculator =
     type Msg =
-        | UpdateMassAmount of float
+        | UpdateWeightAmount of float
         | ConvertAmountToKg
         | ConvertAmountToLb
+        | UpdateBodyfatPercentage of int
 
-    type State = { Weight: Mass option; WeightUnit: MassUnit }
+    type State = { BodyComposition: BodyComposition }
 
-    let init() = { Weight = None; WeightUnit = MassUnit.Kg }, Cmd.none
+    let init() = { BodyComposition = BodyComposition.Default }, Cmd.none
 
     let update (msg: Msg) (state: State) : State * Cmd<'a> =
         match msg with
-        | UpdateMassAmount amount ->
-            let weight =
-                option {
-                    let! w = state.Weight
+        | UpdateWeightAmount amount ->
+            let bodyComposition = state.BodyComposition.UpdateWeightAmount amount
 
-                    return w.UpdateAmount(amount)
-                }
-                |> Option.defaultValue (Mass.Create(amount, state.WeightUnit))
-
-            { state with Weight = Some weight }, Cmd.none
+            { state with BodyComposition = bodyComposition }, Cmd.none
 
         | ConvertAmountToKg ->
+            console.log "convert to kg"
+
             { state with
-                Weight = state.Weight |> Option.map(fun w -> w.ToKg())
-                WeightUnit = MassUnit.Kg
+                BodyComposition = state.BodyComposition.ToKg()
             }, Cmd.none
 
         | ConvertAmountToLb ->
+            console.log "convert to lb"
+
+            let bc = state.BodyComposition.ToLb()
+
+            console.log bc
+
             { state with
-                Weight = state.Weight |> Option.map(fun w -> w.ToLb())
-                WeightUnit = MassUnit.Lb
+                BodyComposition = state.BodyComposition.ToLb()
             }, Cmd.none
 
-    type WeightHtml = {
-        Weight: Mass option
-        WeightUnit: MassUnit
+        | UpdateBodyfatPercentage bodyFatPct ->
+            { state with
+                BodyComposition = state.BodyComposition.UpdateBodyfatPercentage(bodyFatPct)
+            }, Cmd.none
+
+    type BodyCompositionHtml = {
+        BodyComposition: BodyComposition
         Dispatch: Msg -> unit
     } with
         member private _.InputHtmlId = "form-control"
@@ -65,12 +70,12 @@ module Calculator =
                 prop.type' "number"
                 prop.className "form-control"
                 prop.placeholder "How much do you weigh?"
-                prop.onChange (fun updatedAmount -> this.Dispatch (UpdateMassAmount updatedAmount))
+                prop.onChange (fun updatedAmount -> this.Dispatch (UpdateWeightAmount updatedAmount))
             ]
 
             let valueProperty =
-                match this.Weight with
-                | Some w -> [ prop.value w.AsFloat ]
+                match this.BodyComposition.Weight.Amount with
+                | Some amount -> [ prop.value amount ]
                 | _ -> []
 
             Html.input (baseProperties @ valueProperty)
@@ -84,7 +89,7 @@ module Calculator =
                     prop.className "btn-check"
                     prop.name "weightUnitOptions"
                     prop.id optionName
-                    prop.isChecked this.WeightUnit.IsKilogram
+                    prop.isChecked this.BodyComposition.Weight.Unit.IsKilogram
                     prop.onClick (fun _ -> this.Dispatch ConvertAmountToKg)
                 ]
                 Html.label [
@@ -103,7 +108,7 @@ module Calculator =
                     prop.className "btn-check"
                     prop.name "weightUnitOptions"
                     prop.id optionName
-                    prop.isChecked this.WeightUnit.IsPound
+                    prop.isChecked this.BodyComposition.Weight.Unit.IsPound
                     prop.onClick (fun _ -> this.Dispatch ConvertAmountToLb)
                 ]
                 Html.label [
@@ -131,27 +136,58 @@ module Calculator =
                 ]
             ]
 
+    let bodyfatPctHtml : ReactElement =
+        Html.div [
+            prop.className "mb-3"
+            prop.children [
+                Html.label [
+                    prop.for' "bodyfat-pct"
+                    prop.className "form-label"
+                    prop.text "Bodyfat %"
+                ]
+                Html.div [
+                    prop.className "input-group"
+                    prop.children [
+                        Html.input [
+                            prop.type' "text"
+                            prop.className "form-control"
+                            prop.placeholder "Enter your bodyfat %"
+                            prop.ariaLabel "Bodyfat Percentage"
+                            prop.ariaDescribedBy "bodyfat-pct"
+                        ]
+
+                        Html.span [
+                            prop.className "input-group-text"
+                            prop.id "bodyfat-pct"
+                            prop.text "%"
+                        ]
+                    ]
+                ]
+            ]
+
+        ]
+
     [<ReactComponent>]
     let View() : ReactElement =
         let state, dispatch = React.useElmish(init, update, [| |])
 
-        let massAmountH1 (maybeMass: Mass option) =
-            match maybeMass with
-            | Some mass -> Html.h1 mass.AsFloat
+        let massAmountH1 (bodyComposition: BodyComposition) =
+            match bodyComposition.Weight.Amount with
+            | Some amt -> Html.h1 amt
             | None -> Html.h1 "no amount"
 
         let weightHtml = {
-            Weight =  state.Weight
-            WeightUnit = state.WeightUnit
+            BodyComposition = state.BodyComposition
             Dispatch = dispatch
         }
 
         fluidContainer [
             row [
                 col [
-                    massAmountH1 state.Weight
+                    massAmountH1 state.BodyComposition
 
                     weightHtml.View
+                    bodyfatPctHtml
                 ]
             ]
         ]
