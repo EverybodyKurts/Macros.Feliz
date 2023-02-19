@@ -8,6 +8,7 @@ open Elmish
 open Browser
 
 open Bootstrap
+open Library
 open Library.Form
 
 module Calculator =
@@ -29,19 +30,11 @@ module Calculator =
             { state with BodyComposition = bodyComposition }, Cmd.none
 
         | ConvertAmountToKg ->
-            console.log "convert to kg"
-
             { state with
                 BodyComposition = state.BodyComposition.ToKg()
             }, Cmd.none
 
         | ConvertAmountToLb ->
-            console.log "convert to lb"
-
-            let bc = state.BodyComposition.ToLb()
-
-            console.log bc
-
             { state with
                 BodyComposition = state.BodyComposition.ToLb()
             }, Cmd.none
@@ -68,6 +61,7 @@ module Calculator =
             let baseProperties = [
                 prop.id this.InputHtmlId
                 prop.type' "number"
+                prop.min 0
                 prop.className "form-control"
                 prop.placeholder "How much do you weigh?"
                 prop.onChange (fun updatedAmount -> this.Dispatch (UpdateWeightAmount updatedAmount))
@@ -136,7 +130,7 @@ module Calculator =
                 ]
             ]
 
-    let bodyfatPctHtml : ReactElement =
+    let bodyfatPctHtml (dispatch: Msg -> unit) : ReactElement =
         Html.div [
             prop.className "mb-3"
             prop.children [
@@ -149,11 +143,14 @@ module Calculator =
                     prop.className "input-group"
                     prop.children [
                         Html.input [
-                            prop.type' "text"
+                            prop.type' "number"
+                            prop.min 0
+                            prop.max 100
                             prop.className "form-control"
                             prop.placeholder "Enter your bodyfat %"
                             prop.ariaLabel "Bodyfat Percentage"
                             prop.ariaDescribedBy "bodyfat-pct"
+                            prop.onChange (fun pct -> dispatch (UpdateBodyfatPercentage pct))
                         ]
 
                         Html.span [
@@ -167,27 +164,42 @@ module Calculator =
 
         ]
 
+    let bodyCompositionHtml (bodyComposition: Domain.BodyComposition) =
+        Html.div [
+            Html.div [
+                prop.text "Lean Muscle Mass:"
+            ]
+            Html.div [
+                prop.text bodyComposition.LeanMuscleMass.Text
+            ]
+        ]
+
+
     [<ReactComponent>]
     let View() : ReactElement =
         let state, dispatch = React.useElmish(init, update, [| |])
-
-        let massAmountH1 (bodyComposition: BodyComposition) =
-            match bodyComposition.Weight.Amount with
-            | Some amt -> Html.h1 amt
-            | None -> Html.h1 "no amount"
 
         let weightHtml = {
             BodyComposition = state.BodyComposition
             Dispatch = dispatch
         }
 
+        let bcHtml =
+            match state.BodyComposition.Validate() with
+            | Ok bc -> bodyCompositionHtml bc
+            | Error _ ->
+                console.log state.BodyComposition
+
+                Html.div [
+                    prop.text "Body composition not valid"
+                ]
+
         fluidContainer [
             row [
                 col [
-                    massAmountH1 state.BodyComposition
-
                     weightHtml.View
-                    bodyfatPctHtml
+                    bodyfatPctHtml dispatch
+                    bcHtml
                 ]
             ]
         ]
