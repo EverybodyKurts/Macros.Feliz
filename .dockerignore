@@ -6,3 +6,5 @@ src/bin
 src/obj
 
 tests/obj
+
+dist/
