@@ -1,6 +1,8 @@
 namespace App
 
 module Library =
+    open FSharp.Core.Fluent
+
     [<AutoOpen>]
     module UnitsOfMeasure =
         [<Measure>] type kg
@@ -12,20 +14,6 @@ module Library =
         let kgPerLb = 1.0 / lbPerKg
 
     module Domain =
-        type MassUnit =
-            | Kg
-            | Lb
-
-            member this.IsKilogram : bool =
-                match this with
-                | Kg -> true
-                | _ -> false
-
-            member this.IsPound : bool =
-                match this with
-                | Lb -> true
-                | _ -> false
-
         type Mass =
             | Lb of lb : float<lb>
             | Kg of kg : float<kg>
@@ -53,6 +41,11 @@ module Library =
             static member CreateKg(amount: float) : Mass =
                 Kg <| amount * 1.0<kg>
 
+            member this.Text : string =
+                match this with
+                | Kg kg -> $"{kg} kg"
+                | Lb lb -> $"{lb} lb"
+
         /// Basal metabolic rate is calculated with the Katch-McArdle formual
         let basalMetabolicRate (leanBodyMass: float<kg>) : float<cal> =
             370.0<cal> + (21.6<cal/kg> * leanBodyMass)
@@ -75,49 +68,62 @@ module Library =
                 match this.LeanMuscleMass.ToKg() with
                 | Kg kg -> basalMetabolicRate kg
 
-
     module Form =
         open FsToolkit.ErrorHandling
 
+        type WeightUnit =
+            | Kg
+            | Lb
+
+            member this.IsKilogram : bool =
+                match this with
+                | Kg -> true
+                | _ -> false
+
+            member this.IsPound : bool =
+                match this with
+                | Lb -> true
+                | _ -> false
+
         type Weight = {
             Amount: float option
-            Unit: Domain.MassUnit
+            Unit: WeightUnit
         } with
             static member Create(weight: Domain.Mass) : Weight =
                 match weight with
                 | Domain.Mass.Kg kg ->
                     {
                         Amount = Some <| float kg
-                        Unit = Domain.MassUnit.Kg
+                        Unit = Kg
                     }
                 | Domain.Mass.Lb lb ->
                     {
                         Amount = Some <| float lb
-                        Unit = Domain.MassUnit.Lb
+                        Unit = Lb
                     }
 
             static member Default : Weight =
                 {
                     Amount = None
-                    Unit = Domain.MassUnit.Kg
+                    Unit = Kg
                 }
 
             member this.Validate() =
                 match this.Amount, this.Unit with
-                | Some amount, Domain.MassUnit.Lb when amount >= 0 -> Ok <| Domain.Mass.CreateLb amount
-                | Some amount, Domain.MassUnit.Kg when amount >= 0 -> Ok <| Domain.Mass.CreateKg amount
+                | Some amount, Lb when amount >= 0 -> Ok <| Domain.Mass.CreateLb amount
+                | Some amount, Kg when amount >= 0 -> Ok <| Domain.Mass.CreateKg amount
                 | Some _, _ -> Error "Weight amount must be >= 0"
                 | None, _ -> Error "Weight amount must be present"
 
             member this.ToKg() : Weight =
                 match this.Validate() with
                 | Ok weight -> weight.ToKg() |> Weight.Create
-                | Error _ -> { this with Unit = Domain.MassUnit.Kg }
+                | Error _ -> { this with Unit = Kg }
 
             member this.ToLb() : Weight =
                 match this.Validate() with
                 | Ok weight -> weight.ToLb() |> Weight.Create
-                | Error _ -> { this with Unit = Domain.MassUnit.Lb }
+                | Error _ -> { this with Unit = Lb }
 
         type BodyComposition = {
             Weight: Weight
@@ -130,9 +136,12 @@ module Library =
                 }
 
             member private this.ValidatePercentage() : Result<uint<pct>, string> =
+                let bodyfatPercentages = [ 0 .. 100 ]
+
                 match this.BodyfatPercentage with
-                | Some bfPct when bfPct >= 0 -> Ok <| (uint bfPct) * 1u<pct>
-                | Some _ -> Error "Bodyfat % must be >= 0"
+                | Some bfPct when bodyfatPercentages |> List.contains bfPct ->
+                    Ok <| (uint bfPct) * 1u<pct>
+                | Some _ -> Error "Bodyfat % must be betwen 0 and 100"
                 | None -> Error "Bodyfat % must be present"
 
             member this.Validate() : Validation<Domain.BodyComposition, string> =
