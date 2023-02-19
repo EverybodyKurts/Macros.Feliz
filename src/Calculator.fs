@@ -49,10 +49,19 @@ module Calculator =
                 MassUnit = MassUnit.Lb
             }, Cmd.none
 
-    let massAmountInput (dispatch: Msg -> unit) (weight: Mass option) : ReactElement =
+    let weightAmountLabel (inputHtmlId: string) : ReactElement =
+        Html.label [
+            prop.for' inputHtmlId
+            prop.className "form-label"
+            prop.text "Body Weight"
+        ]
+
+    let weightAmountInput (dispatch: Msg -> unit) (inputHtmlId: string) (weight: Mass option) : ReactElement =
         let baseProperties = [
+            prop.id inputHtmlId
             prop.type' "number"
             prop.className "form-control"
+            prop.placeholder "How much do you weigh?"
             prop.onChange (fun updatedAmount -> dispatch (UpdateMassAmount updatedAmount))
         ]
 
@@ -101,6 +110,26 @@ module Calculator =
             ]
         ]
 
+    let weightAmountHtml (dispatch: Msg -> unit) (weight: Mass option) (massUnit: MassUnit ): ReactElement =
+        let inputId = "mass-amount-input"
+
+        let inputHtmls =
+            [ weightAmountInput dispatch inputId weight ]
+            @ weightLbOption dispatch massUnit
+            @ weightKgOption dispatch massUnit
+
+        Html.div [
+            prop.className "mb-3"
+            prop.children [
+                weightAmountLabel inputId
+
+                Html.div [
+                    prop.className "input-group"
+                    prop.children inputHtmls
+                ]
+            ]
+        ]
+
     [<ReactComponent>]
     let View() : ReactElement =
         let state, dispatch = React.useElmish(init, update, [| |])
@@ -110,25 +139,15 @@ module Calculator =
             | Some mass -> Html.h1 mass.AsFloat
             | None -> Html.h1 "no amount"
 
+        let weightAmountHtml =
+            weightAmountHtml dispatch state.Weight state.MassUnit
+
         fluidContainer [
             row [
                 col [
-                    Html.h1 state.Count
                     massAmountH1 state.Weight
-                    Html.button [
-                        prop.text "Increment"
-                        prop.onClick (fun _ -> dispatch Increment)
-                    ]
 
-                    Html.button [
-                        prop.text "Decrement"
-                        prop.onClick (fun _ -> dispatch Decrement)
-                    ]
-
-                    Html.div [
-                        prop.className "input-group"
-                        prop.children ([massAmountInput dispatch state.Weight] @ (weightKgOption dispatch state.MassUnit) @ (weightLbOption dispatch state.MassUnit))
-                    ]
+                    weightAmountHtml
                 ]
             ]
         ]
