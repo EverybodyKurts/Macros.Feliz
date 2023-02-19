@@ -1,9 +1,11 @@
 namespace App
 
 open Feliz
-open Elmish
 open Feliz.UseElmish
 open Fable.React
+open Elmish
+
+open FsToolkit.ErrorHandling
 
 open Bootstrap
 open Library.Domain
@@ -16,23 +18,9 @@ module Calculator =
         | ConvertAmountToKg
         | ConvertAmountToLb
 
-    type MassUnit =
-        | Kg
-        | Lb
-
-        member this.IsKilogram : bool =
-            match this with
-            | Kg -> true
-            | _ -> false
-
-        member this.IsPound : bool =
-            match this with
-            | Lb -> true
-            | _ -> false
-
     type State = { Count: int; Weight: Mass option; MassUnit: MassUnit }
 
-    let init() = { Count = 0; Weight = None; MassUnit = Kg }, Cmd.none
+    let init() = { Count = 0; Weight = None; MassUnit = MassUnit.Kg }, Cmd.none
 
     let update (msg: Msg) (state: State) : State * Cmd<'a> =
         match msg with
@@ -40,25 +28,25 @@ module Calculator =
         | Decrement -> { state with Count = state.Count - 1 }, Cmd.none
         | UpdateMassAmount amount ->
             let weight =
-                match state.Weight with
-                | Some (Mass.Lb _) -> Some <| Mass.CreateLb amount
-                | Some (Mass.Kg _) -> Some <| Mass.CreateKg amount
-                | None ->
-                    if state.MassUnit = Kg then Some <| Mass.CreateKg amount
-                    else Some <| Mass.CreateLb amount
+                option {
+                    let! w = state.Weight
 
-            { state with Weight = weight }, Cmd.none
+                    return w.UpdateAmount(amount)
+                }
+                |> Option.defaultValue (Mass.Create(amount, state.MassUnit))
+
+            { state with Weight = Some weight }, Cmd.none
 
         | ConvertAmountToKg ->
             { state with
                 Weight = state.Weight |> Option.map(fun w -> w.ToKg())
-                MassUnit = Kg
+                MassUnit = MassUnit.Kg
             }, Cmd.none
 
         | ConvertAmountToLb ->
             { state with
                 Weight = state.Weight |> Option.map(fun w -> w.ToLb())
-                MassUnit = Lb
+                MassUnit = MassUnit.Lb
             }, Cmd.none
 
     let massAmountInput (dispatch: Msg -> unit) (weight: Mass option) : ReactElement =
