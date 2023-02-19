@@ -6,6 +6,7 @@ module Library =
         [<Measure>] type kg
         [<Measure>] type lb
         [<Measure>] type pct
+        [<Measure>] type cal
 
         let lbPerKg = 2.20462262<lb/kg>
         let kgPerLb = 1.0 / lbPerKg
@@ -29,6 +30,13 @@ module Library =
             | Lb of lb : float<lb>
             | Kg of kg : float<kg>
 
+            static member (-) (mass1: Mass, mass2: Mass) : Mass =
+                match mass1, mass2 with
+                | Lb lb1, Lb lb2 -> Lb <| lb1 - lb2
+                | Lb lb, Kg kg -> Lb <| lb - (kg * lbPerKg)
+                | Kg kg1, Kg kg2 -> Kg <| kg1 - kg2
+                | Kg kg, Lb lb -> Kg <| kg - (lb * kgPerLb)
+
             member this.ToLb() : Mass =
                 match this with
                 | Kg kg -> Lb <| kg * lbPerKg
@@ -45,10 +53,28 @@ module Library =
             static member CreateKg(amount: float) : Mass =
                 Kg <| amount * 1.0<kg>
 
+        /// Basal metabolic rate is calculated with the Katch-McArdle formual
+        let basalMetabolicRate (leanBodyMass: float<kg>) : float<cal> =
+            370.0<cal> + (21.6<cal/kg> * leanBodyMass)
+
         type BodyComposition = {
             Weight: Mass
             BodyfatPercentage: uint<pct>
-        }
+        } with
+            member this.FatMass : Mass =
+                let bf = float this.BodyfatPercentage / 100.0
+
+                match this.Weight with
+                | Kg kg -> Kg <| kg * bf
+                | Lb lb -> Lb <| lb * bf
+
+            member this.LeanMuscleMass : Mass =
+                this.Weight - this.FatMass
+
+            member this.BasalMetabolicRate : float<cal> =
+                match this.LeanMuscleMass.ToKg() with
+                | Kg kg -> basalMetabolicRate kg
+
 
     module Form =
         open FsToolkit.ErrorHandling
