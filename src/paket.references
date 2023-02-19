@@ -3,3 +3,4 @@ Feliz.Router
 Fable.DateFunctions
 FSharp.Core
 Feliz.UseElmish
+FsToolkit.ErrorHandling
