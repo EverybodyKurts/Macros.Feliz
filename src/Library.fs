@@ -59,3 +59,8 @@ module Library =
                 match massUnit with
                 | MassUnit.Kg -> Mass.CreateKg amount
                 | MassUnit.Lb -> Mass.CreateLb amount
+
+        type BodyComposition = {
+            Weight: Mass
+            BodyfatPercentage: uint<pct>
+        }
