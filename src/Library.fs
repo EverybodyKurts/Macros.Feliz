@@ -39,26 +39,11 @@ module Library =
                 | Lb lb -> Kg <| lb * kgPerLb
                 | _ -> this
 
-            member this.AsFloat : float =
-                match this with
-                | Lb lb -> float lb
-                | Kg kg -> float kg
-
-            member this.UpdateAmount (amount: float) : Mass =
-                match this with
-                | Lb _ -> Lb <| amount * 1.0<lb>
-                | Kg _ -> Kg <| amount * 1.0<kg>
-
             static member CreateLb(amount: float) : Mass =
                 Lb <| amount * 1.0<lb>
 
             static member CreateKg(amount: float) : Mass =
                 Kg <| amount * 1.0<kg>
-
-            static member Create(amount: float, massUnit: MassUnit) : Mass =
-                match massUnit with
-                | MassUnit.Kg -> Mass.CreateKg amount
-                | MassUnit.Lb -> Mass.CreateLb amount
 
         type BodyComposition = {
             Weight: Mass
