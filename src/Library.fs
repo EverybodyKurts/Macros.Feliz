@@ -51,22 +51,42 @@ module Library =
             370.0<cal> + (21.6<cal/kg> * leanBodyMass)
 
         type BodyComposition = {
-            Weight: Mass
+            BodyWeight: Mass
             BodyfatPercentage: uint<pct>
         } with
             member this.FatMass : Mass =
                 let bf = float this.BodyfatPercentage / 100.0
 
-                match this.Weight with
+                match this.BodyWeight with
                 | Kg kg -> Kg <| kg * bf
                 | Lb lb -> Lb <| lb * bf
 
             member this.LeanMuscleMass : Mass =
-                this.Weight - this.FatMass
+                this.BodyWeight - this.FatMass
 
             member this.BasalMetabolicRate : float<cal> =
                 match this.LeanMuscleMass.ToKg() with
                 | Kg kg -> basalMetabolicRate kg
+
+        type DailyActivityLevel =
+            | Sedentary
+            | ``Mostly Sedentary``
+            | ``Lightly Active``
+            | ``Highly Active``
+
+            member this.Multipliier : float =
+                match this with
+                | Sedentary -> 1.15
+                | ``Mostly Sedentary`` -> 1.35
+                | ``Lightly Active`` -> 1.55
+                | ``Highly Active`` -> 1.75
+
+        type DailyCaloricExpenditure = {
+            BodyComposition: BodyComposition
+            DailyActivityLevel: DailyActivityLevel
+        } with
+            member this.Total : float<cal> =
+                this.DailyActivityLevel.Multipliier * this.BodyComposition.BasalMetabolicRate
 
     module Form =
         open FsToolkit.ErrorHandling
@@ -150,7 +170,7 @@ module Library =
                     and! bfPct = this.ValidatePercentage()
 
                     return {
-                        Weight = weight
+                        BodyWeight = weight
                         BodyfatPercentage = bfPct
                     }
                 }
