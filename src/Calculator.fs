@@ -12,29 +12,33 @@ open Library
 open Library.Form
 
 module Calculator =
+    /// This module encapsulates logic for step 1 of the macros wizard
+    /// It wires up the user interface and events for body weight and body fat percentage.
     module BodyComposition =
         open Html
 
+        /// The actions the user can perform when entering in their body weight & fat %
         type Msg =
-            | UpdateWeightAmount of float
-            | ConvertAmountToKg
-            | ConvertAmountToLb
-            | UpdateBodyfatPercentage of int
+            | ``Update Weight Amount`` of float
+            | ``Convert Amount To Kg``
+            | ``Convert Amount To Lb``
+            | ``Update Bodyfat Percentage`` of int
 
         let init() = BodyComposition.Default, Cmd.none
 
+        /// Updates the body composition form based on a user action
         let update (msg: Msg) (form: Form.BodyComposition) : Form.BodyComposition * Cmd<'a> =
             match msg with
-            | UpdateWeightAmount amount ->
+            | ``Update Weight Amount`` amount ->
                 form.UpdateWeightAmount(amount), Cmd.none
 
-            | ConvertAmountToKg ->
+            | ``Convert Amount To Kg`` ->
                 form.ToKg(), Cmd.none
 
-            | ConvertAmountToLb ->
+            | ``Convert Amount To Lb`` ->
                 form.ToLb(), Cmd.none
 
-            | UpdateBodyfatPercentage bodyFatPct ->
+            | ``Update Bodyfat Percentage`` bodyFatPct ->
                 form.UpdateBodyfatPercentage(bodyFatPct), Cmd.none
 
         let bodyCompositionHtml (bodyComposition: Domain.BodyComposition) =
@@ -50,12 +54,12 @@ module Calculator =
         let view(form: Form.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
             let bodyWeightFields = {
                 Form = form
-                UpdateWeightAmount = (fun updatedAmount -> dispatch (UpdateWeightAmount updatedAmount))
-                SelectKgUnit = (fun _ -> dispatch ConvertAmountToKg)
-                SelectLbUnit = (fun _ -> dispatch ConvertAmountToLb)
+                UpdateWeightAmount = (fun updatedAmount -> dispatch (``Update Weight Amount`` updatedAmount))
+                SelectKgUnit = (fun _ -> dispatch ``Convert Amount To Kg``)
+                SelectLbUnit = (fun _ -> dispatch ``Convert Amount To Lb``)
             }
 
-            let bodyfatPctField = bodyfatPct (fun bfPct -> dispatch (UpdateBodyfatPercentage bfPct))
+            let bodyfatPctField = bodyfatPct (fun bfPct -> dispatch (``Update Bodyfat Percentage`` bfPct))
 
             let bcHtml =
                 match form.Validate() with
