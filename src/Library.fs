@@ -128,7 +128,7 @@ module Library =
                     Unit = Kg
                 }
 
-            member this.Validate() =
+            member this.Validate() : Result<Domain.Mass, string> =
                 match this.Amount, this.Unit with
                 | Some amount, Lb when amount >= 0 -> Ok <| Domain.Mass.CreateLb amount
                 | Some amount, Kg when amount >= 0 -> Ok <| Domain.Mass.CreateKg amount
