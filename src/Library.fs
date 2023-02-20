@@ -199,7 +199,7 @@ module Library =
     module Html =
         open Feliz
 
-        type BodyComposition = {
+        type BodyWeightFields = {
             Form: Form.BodyComposition
             UpdateWeightAmount: float -> unit
             SelectKgUnit: Browser.Types.MouseEvent -> unit
