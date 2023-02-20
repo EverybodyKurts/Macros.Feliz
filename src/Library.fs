@@ -196,3 +196,128 @@ module Library =
             member this.UpdateBodyfatPercentage (percentage: int) : BodyComposition =
                 { this with BodyfatPercentage = Some percentage }
 
+    module Html =
+        open Feliz
+
+        type BodyComposition = {
+            Form: Form.BodyComposition
+            UpdateWeightAmount: float -> unit
+            SelectKgUnit: Browser.Types.MouseEvent -> unit
+            SelectLbUnit: Browser.Types.MouseEvent -> unit
+        } with
+            member private _.InputHtmlId = "body-weight-amount-input"
+
+            member this.Label : ReactElement =
+                Html.label [
+                    prop.for' this.InputHtmlId
+                    prop.className "form-label"
+                    prop.text "Body Weight"
+                ]
+
+            member this.Input : ReactElement =
+                let baseProperties = [
+                    prop.id this.InputHtmlId
+                    prop.type' "number"
+                    prop.min 0
+                    prop.className "form-control"
+                    prop.placeholder "How much do you weigh?"
+                    prop.onChange this.UpdateWeightAmount
+                ]
+
+                let valueProperty =
+                    match this.Form.Weight.Amount with
+                    | Some amount -> [ prop.value amount ]
+                    | _ -> []
+
+                Html.input (baseProperties @ valueProperty)
+
+            member private _.WeightUnitOptions = "weightUnitOptions"
+
+            member this.WeightKgOption : ReactElement list =
+                let optionName = "kgUnitOption"
+
+                [
+                    Html.input [
+                        prop.type' "radio"
+                        prop.className "btn-check"
+                        prop.name this.WeightUnitOptions
+                        prop.id optionName
+                        prop.isChecked this.Form.Weight.Unit.IsKilogram
+                        prop.onClick this.SelectKgUnit
+                    ]
+                    Html.label [
+                        prop.classes ["btn"; "btn-secondary"]
+                        prop.for' optionName
+                        prop.text "Kg"
+                    ]
+                ]
+
+            member this.WeightLbOption : ReactElement list =
+                let optionName = "lbUnitOption"
+
+                [
+                    Html.input [
+                        prop.type' "radio"
+                        prop.className "btn-check"
+                        prop.name this.WeightUnitOptions
+                        prop.id optionName
+                        prop.isChecked this.Form.Weight.Unit.IsPound
+                        prop.onClick this.SelectLbUnit
+                    ]
+                    Html.label [
+                        prop.classes ["btn"; "btn-secondary"]
+                        prop.for' optionName
+                        prop.text "Lb"
+                    ]
+                ]
+
+            member this.View : ReactElement =
+                let inputHtmls =
+                    [ this.Input ]
+                    @ this.WeightKgOption
+                    @ this.WeightLbOption
+
+                Html.div [
+                    prop.className "mb-3"
+                    prop.children [
+                        this.Label
+
+                        Html.div [
+                            prop.className "input-group"
+                            prop.children inputHtmls
+                        ]
+                    ]
+                ]
+
+        let bodyfatPct (handler: int -> unit) : ReactElement =
+            Html.div [
+                prop.className "mb-3"
+                prop.children [
+                    Html.label [
+                        prop.for' "bodyfat-pct"
+                        prop.className "form-label"
+                        prop.text "Bodyfat %"
+                    ]
+                    Html.div [
+                        prop.className "input-group"
+                        prop.children [
+                            Html.input [
+                                prop.type' "number"
+                                prop.min 0
+                                prop.max 100
+                                prop.className "form-control"
+                                prop.placeholder "Enter your bodyfat %"
+                                prop.ariaLabel "Bodyfat Percentage"
+                                prop.ariaDescribedBy "bodyfat-pct"
+                                prop.onChange handler
+                            ]
+
+                            Html.span [
+                                prop.className "input-group-text"
+                                prop.id "bodyfat-pct"
+                                prop.text "%"
+                            ]
+                        ]
+                    ]
+                ]
+            ]
