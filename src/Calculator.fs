@@ -59,7 +59,7 @@ module Calculator =
                 SelectLbUnit = (fun _ -> dispatch ``Convert Amount To Lb``)
             }
 
-            let bodyfatPctField = bodyfatPct (fun bfPct -> dispatch (``Update Bodyfat Percentage`` bfPct))
+            let card = BodyComposition.card (fun bfPct -> dispatch (``Update Bodyfat Percentage`` bfPct)) bodyWeightFields
 
             let bcHtml =
                 match form.Validate() with
@@ -72,8 +72,7 @@ module Calculator =
                     ]
 
             [
-                bodyWeightFields.View
-                bodyfatPctField
+                card
                 bcHtml
             ]
 

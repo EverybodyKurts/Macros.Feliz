@@ -289,35 +289,58 @@ module Library =
                     ]
                 ]
 
-        let bodyfatPct (handler: int -> unit) : ReactElement =
-            Html.div [
-                prop.className "mb-3"
-                prop.children [
-                    Html.label [
-                        prop.for' "bodyfat-pct"
-                        prop.className "form-label"
-                        prop.text "Bodyfat %"
-                    ]
-                    Html.div [
-                        prop.className "input-group"
-                        prop.children [
-                            Html.input [
-                                prop.type' "number"
-                                prop.min 0
-                                prop.max 100
-                                prop.className "form-control"
-                                prop.placeholder "Enter your bodyfat %"
-                                prop.ariaLabel "Bodyfat Percentage"
-                                prop.ariaDescribedBy "bodyfat-pct"
-                                prop.onChange handler
-                            ]
+        module BodyComposition =
+            let bodyfatPct (handler: int -> unit) : ReactElement =
+                Html.div [
+                    prop.className "mb-3"
+                    prop.children [
+                        Html.label [
+                            prop.for' "bodyfat-pct"
+                            prop.className "form-label"
+                            prop.text "Bodyfat %"
+                        ]
+                        Html.div [
+                            prop.className "input-group"
+                            prop.children [
+                                Html.input [
+                                    prop.type' "number"
+                                    prop.min 0
+                                    prop.max 100
+                                    prop.className "form-control"
+                                    prop.placeholder "Enter your bodyfat %"
+                                    prop.ariaLabel "Bodyfat Percentage"
+                                    prop.ariaDescribedBy "bodyfat-pct"
+                                    prop.onChange handler
+                                ]
 
-                            Html.span [
-                                prop.className "input-group-text"
-                                prop.id "bodyfat-pct"
-                                prop.text "%"
+                                Html.span [
+                                    prop.className "input-group-text"
+                                    prop.id "bodyfat-pct"
+                                    prop.text "%"
+                                ]
                             ]
                         ]
                     ]
                 ]
-            ]
+
+            let card (bodyfatPctHandler: int -> unit) (bodyWeightFields: BodyWeightFields) =
+                let bodyfatPctHtml = bodyfatPct bodyfatPctHandler
+
+                Html.div [
+                    prop.className "card"
+
+                    prop.children [
+                        Html.div [
+                            prop.className "card-header"
+                            prop.text "Body Composition"
+                        ]
+
+                        Html.div [
+                            prop.className "card-body"
+                            prop.children [
+                                bodyWeightFields.View
+                                bodyfatPctHtml
+                            ]
+                        ]
+                    ]
+                ]
