@@ -1,11 +1,13 @@
 namespace App
 
+open Browser
+open Browser.Dom
 open Feliz
+open Elmish
 open Feliz.UseElmish
 open Fable.React
-open Elmish
 
-open Browser
+open FsToolkit.ErrorHandling
 
 open Bootstrap
 open Library
@@ -23,6 +25,7 @@ module Calculator =
             | ``Convert Amount To Kg``
             | ``Convert Amount To Lb``
             | ``Update Bodyfat Percentage`` of int
+            | ``Proceed to Next Step`` of Domain.BodyComposition
 
         let init() = BodyComposition.Default, Cmd.none
 
@@ -41,7 +44,7 @@ module Calculator =
             | ``Update Bodyfat Percentage`` bodyFatPct ->
                 form.UpdateBodyfatPercentage(bodyFatPct), Cmd.none
 
-        let bodyCompositionHtml (bodyComposition: Domain.BodyComposition) =
+        let bodyCompositionHtml (bodyComposition: Domain.BodyComposition) : ReactElement =
             Html.div [
                 Html.div [
                     prop.text "Lean Muscle Mass:"
@@ -52,18 +55,10 @@ module Calculator =
             ]
 
         let view(form: Form.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
-            let bodyWeightFields = {
-                Form = form
-                UpdateWeightAmount = (fun updatedAmount -> dispatch (``Update Weight Amount`` updatedAmount))
-                SelectKgUnit = (fun _ -> dispatch ``Convert Amount To Kg``)
-                SelectLbUnit = (fun _ -> dispatch ``Convert Amount To Lb``)
-            }
-
-            let card = BodyComposition.card (fun bfPct -> dispatch (``Update Bodyfat Percentage`` bfPct)) bodyWeightFields
-
             let bcHtml =
                 match form.Validate() with
-                | Ok bc -> bodyCompositionHtml bc
+                | Ok bc ->
+                    bodyCompositionHtml bc
                 | Error _ ->
                     console.log form
 
@@ -71,8 +66,24 @@ module Calculator =
                         prop.text "Body composition not valid"
                     ]
 
+            let nextStepHandler =
+                option {
+                    let! bodyComposition = form.Validate() |> Utilities.Result.toOption
+                    return (fun _ -> dispatch (``Proceed to Next Step`` bodyComposition))
+                }
+
+            let bodyCompositionFields = BodyCompositionFields.Create(
+                form = form,
+                updateWeightAmount = (fun updatedAmount -> dispatch (``Update Weight Amount`` updatedAmount)),
+                updateBodyfatPercentage = (fun bfPct -> dispatch (``Update Bodyfat Percentage`` bfPct)),
+                selectKgUnit = (fun _ -> dispatch ``Convert Amount To Kg``),
+                selectLbUnit = (fun _ -> dispatch ``Convert Amount To Lb``),
+                ?proceedToNextStep = nextStepHandler
+            )
+
+
             [
-                card
+                bodyCompositionFields.Card
                 bcHtml
             ]
 
@@ -87,6 +98,10 @@ module Calculator =
 
     let update (msg: Msg) (state: State) : State * Cmd<'a> =
         match msg, state with
+        | BodyCompositionMsg (BodyComposition.``Proceed to Next Step`` bodyComposition), BodyCompositionStep form ->
+            console.log "Proceeded to next step"
+            state, Cmd.none
+
         | BodyCompositionMsg msg, BodyCompositionStep bodyCompositionForm ->
             let (updated, cmd) = BodyComposition.update msg bodyCompositionForm
 
