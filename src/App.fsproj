@@ -6,6 +6,7 @@
   <ItemGroup>
     <None Include="index.html" />
     <Compile Include="Extensions.fs" />
+    <Compile Include="Utilities.fs" />
     <Compile Include="Library.fs" />
     <Compile Include="Bootstrap.fs" />
     <Compile Include="Calculator.fs" />
