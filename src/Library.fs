@@ -263,12 +263,31 @@ module Library =
     module Html =
         open Feliz
 
-        type BodyWeightFields = {
+        type BodyCompositionFields = {
             Form: Form.BodyComposition
             UpdateWeightAmount: float -> unit
+            UpdateBodyfatPercentage: int -> unit
             SelectKgUnit: Browser.Types.MouseEvent -> unit
             SelectLbUnit: Browser.Types.MouseEvent -> unit
+            ProceedToNextStep: (Browser.Types.MouseEvent -> unit) option
         } with
+            static member Create(form: Form.BodyComposition,
+                                 updateWeightAmount: float -> unit,
+                                 updateBodyfatPercentage: int -> unit,
+                                 selectKgUnit: Browser.Types.MouseEvent -> unit,
+                                 selectLbUnit: Browser.Types.MouseEvent -> unit,
+                                 ?proceedToNextStep: Browser.Types.MouseEvent -> unit
+                                ): BodyCompositionFields =
+
+                {
+                    Form = form
+                    UpdateWeightAmount = updateWeightAmount
+                    UpdateBodyfatPercentage = updateBodyfatPercentage
+                    SelectKgUnit = selectKgUnit
+                    SelectLbUnit = selectLbUnit
+                    ProceedToNextStep = proceedToNextStep
+                }
+
             member private _.InputHtmlId = "body-weight-amount-input"
 
             member this.Label : ReactElement =
@@ -335,7 +354,7 @@ module Library =
                     ]
                 ]
 
-            member this.View : ReactElement =
+            member this.BodyWeightFields : ReactElement =
                 let inputHtmls =
                     [ this.Input ]
                     @ this.WeightKgOption
@@ -353,8 +372,7 @@ module Library =
                     ]
                 ]
 
-        module BodyComposition =
-            let bodyfatPct (handler: int -> unit) : ReactElement =
+            member this.BodyfatPercentage : ReactElement =
                 Html.div [
                     prop.className "mb-3"
                     prop.children [
@@ -374,7 +392,7 @@ module Library =
                                     prop.placeholder "Enter your bodyfat %"
                                     prop.ariaLabel "Bodyfat Percentage"
                                     prop.ariaDescribedBy "bodyfat-pct"
-                                    prop.onChange handler
+                                    prop.onChange this.UpdateBodyfatPercentage
                                 ]
 
                                 Html.span [
@@ -387,8 +405,20 @@ module Library =
                     ]
                 ]
 
-            let card (bodyfatPctHandler: int -> unit) (bodyWeightFields: BodyWeightFields) =
-                let bodyfatPctHtml = bodyfatPct bodyfatPctHandler
+            member this.Card : ReactElement =
+                let isDisabled = this.ProceedToNextStep.IsNone
+
+                let defaultButtonProperties =
+                    [
+                        prop.className "btn btn-primary"
+                        prop.text "Next"
+                        prop.disabled isDisabled
+                    ]
+
+                let handlerProperty = 
+                    match this.ProceedToNextStep with
+                    | Some handler -> [ prop.onClick handler]
+                    | None -> []
 
                 Html.div [
                     prop.className "card"
@@ -402,8 +432,15 @@ module Library =
                         Html.div [
                             prop.className "card-body"
                             prop.children [
-                                bodyWeightFields.View
-                                bodyfatPctHtml
+                                this.BodyWeightFields
+                                this.BodyfatPercentage
+                            ]
+                        ]
+
+                        Html.div [
+                            prop.className "card-footer"
+                            prop.children [
+                                Html.button (defaultButtonProperties @ handlerProperty)
                             ]
                         ]
                     ]
