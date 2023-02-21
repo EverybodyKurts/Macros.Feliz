@@ -5,13 +5,22 @@ module Library =
 
     [<AutoOpen>]
     module UnitsOfMeasure =
+        [<Measure>] type g
         [<Measure>] type kg
         [<Measure>] type lb
         [<Measure>] type pct
-        [<Measure>] type cal
+        [<Measure>] type kcal
 
-        let lbPerKg = 2.20462262<lb/kg>
-        let kgPerLb = 1.0 / lbPerKg
+        let lbPerKg : float<lb/kg> = 2.20462262<lb/kg>
+        let kgPerLb : float<kg/lb> = 1.0 / lbPerKg
+
+    module Macronutrients =
+        [<Literal>]
+        let ProteinCaloriesPerGram : float<kcal/g> = 4.0<kcal/g>
+        [<Literal>]
+        let CarbCaloriesPerGram : float<kcal/g> = 4.0<kcal/g>
+        [<Literal>]
+        let FatCaloriesPerGram : float<kcal/g> = 9.0<kcal/g>
 
     module Domain =
         type Mass =
@@ -46,9 +55,13 @@ module Library =
                 | Kg kg -> $"{kg} kg"
                 | Lb lb -> $"{lb} lb"
 
-        /// Basal metabolic rate is calculated with the Katch-McArdle formual
-        let basalMetabolicRate (leanBodyMass: float<kg>) : float<cal> =
-            370.0<cal> + (21.6<cal/kg> * leanBodyMass)
+            member this.KgMeasure : float<kg> =
+                match this.ToKg() with
+                | Kg kg -> kg
+
+        /// Calculate basal metabolic rate with the Katch-McArdle formula
+        let basalMetabolicRate (leanBodyMass: float<kg>) : float<kcal> =
+            370.0<kcal> + (21.6<kcal/kg> * leanBodyMass)
 
         type BodyComposition = {
             BodyWeight: Mass
@@ -64,7 +77,7 @@ module Library =
             member this.LeanMuscleMass : Mass =
                 this.BodyWeight - this.FatMass
 
-            member this.BasalMetabolicRate : float<cal> =
+            member this.BasalMetabolicRate : float<kcal> =
                 match this.LeanMuscleMass.ToKg() with
                 | Kg kg -> basalMetabolicRate kg
 
@@ -85,8 +98,59 @@ module Library =
             BodyComposition: BodyComposition
             DailyActivityLevel: DailyActivityLevel
         } with
-            member this.Total : float<cal> =
+            member this.Total : float<kcal> =
                 this.DailyActivityLevel.Multipliier * this.BodyComposition.BasalMetabolicRate
+
+        type DailyMacronutrient = {
+            Grams: float<g>
+            Calories: float<kcal>
+            Percentage: float<pct>
+        }
+
+        type DailyMacros = {
+            DailyCaloricExpenditure: DailyCaloricExpenditure
+            ProteinGramsPerKgLeanBodyMass: float<g/kg>
+        } with
+
+            member this.BodyComposition : BodyComposition =
+                this.DailyCaloricExpenditure.BodyComposition
+
+            member this.LeanMuscleMass : Mass =
+                this.BodyComposition.LeanMuscleMass
+
+            member this.Protein : DailyMacronutrient =
+                let grams = this.LeanMuscleMass.KgMeasure * this.ProteinGramsPerKgLeanBodyMass
+                let cals = grams * Macronutrients.ProteinCaloriesPerGram
+                let percentage = (cals / this.DailyCaloricExpenditure.Total) * 100.0<pct>
+
+                {
+                    Grams = grams
+                    Calories = cals
+                    Percentage = percentage
+                }
+
+            member this.Fat : DailyMacronutrient =
+                let calories = (this.DailyCaloricExpenditure.Total - this.Protein.Calories) / 2.0
+                let grams = calories / Macronutrients.FatCaloriesPerGram
+                let percentage = (calories / this.DailyCaloricExpenditure.Total) * 100.0<pct>
+
+                {
+                    Grams = grams
+                    Calories = calories
+                    Percentage = percentage
+                }
+
+            member this.Carbs : DailyMacronutrient =
+                let calories = (this.DailyCaloricExpenditure.Total - this.Protein.Calories) / 2.0
+                let grams = calories / Macronutrients.CarbCaloriesPerGram
+                let percentage = (calories / this.DailyCaloricExpenditure.Total) * 100.0<pct>
+
+                {
+                    Grams = grams
+                    Calories = calories
+                    Percentage = percentage
+                }
+
 
     module Form =
         open FsToolkit.ErrorHandling
