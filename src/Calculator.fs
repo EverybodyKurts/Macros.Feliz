@@ -84,7 +84,6 @@ module Calculator =
 
             [
                 bodyCompositionFields.Card
-                bcHtml
             ]
 
     type Msg =
@@ -92,15 +91,15 @@ module Calculator =
 
     type State =
         | BodyCompositionStep of Form.BodyComposition
-        // | DailyActivityStep of Domain.BodyComposition * Domain.DailyActivityLevel
+        | DailyActivityStep of Domain.BodyComposition * Domain.DailyActivityLevel option
 
     let init() = BodyCompositionStep BodyComposition.Default, Cmd.none
 
     let update (msg: Msg) (state: State) : State * Cmd<'a> =
         match msg, state with
-        | BodyCompositionMsg (BodyComposition.``Proceed to Next Step`` bodyComposition), BodyCompositionStep form ->
-            console.log "Proceeded to next step"
-            state, Cmd.none
+        // proceed from body composition form to daily activity form
+        | BodyCompositionMsg (BodyComposition.``Proceed to Next Step`` bodyComposition), _ ->
+            DailyActivityStep (bodyComposition, None), Cmd.none
 
         | BodyCompositionMsg msg, BodyCompositionStep bodyCompositionForm ->
             let (updated, cmd) = BodyComposition.update msg bodyCompositionForm
@@ -123,5 +122,10 @@ module Calculator =
         fluidContainer [
             row [
                 col htmlElements
+            ]
+            row [
+                col [
+                    Html.DailyActivityFields.card
+                ]
             ]
         ]

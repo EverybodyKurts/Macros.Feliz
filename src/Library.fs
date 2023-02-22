@@ -454,3 +454,47 @@ module Library =
                         ]
                     ]
                 ]
+
+        module DailyActivityFields =
+
+            let levelSelect(activityLevel: Domain.DailyActivityLevel) =
+                Html.select [
+                    prop.children [
+                        Html.option [
+                            prop.text (Domain.DailyActivityLevel.Sedentary.ToString())
+                            prop.selected (Domain.DailyActivityLevel.Sedentary.ToString() = activityLevel.ToString())
+                        ]
+                        Html.option [
+                            prop.text (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
+                            prop.selected (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString() = activityLevel.ToString())
+                        ]
+                        Html.option [
+                            prop.text (Domain.DailyActivityLevel.``Lightly Active``.ToString())
+                            prop.selected (Domain.DailyActivityLevel.``Lightly Active``.ToString() = activityLevel.ToString())
+                        ]
+                        Html.option [
+                            prop.text (Domain.DailyActivityLevel.``Highly Active``.ToString())
+                            prop.selected (Domain.DailyActivityLevel.``Highly Active``.ToString() = activityLevel.ToString())
+                        ]
+                    ]
+                ]
+
+            let card : ReactElement =
+                Html.div [
+                    prop.className "card mt-3"
+
+                    prop.children [
+                        Html.div [
+                            prop.className "card-header"
+                            prop.text "Daily Activity"
+                        ]
+
+                        Html.div [
+                            prop.className "card-body"
+
+                            prop.children [
+                            ]
+                        ]
+                    ]
+
+                ]
