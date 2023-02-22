@@ -94,6 +94,13 @@ module Library =
                 | ``Lightly Active`` -> 1.55
                 | ``Highly Active`` -> 1.75
 
+            member this.Text : string =
+                match this with
+                | Sedentary -> "Sedentary"
+                | ``Mostly Sedentary`` -> "Mostly Sedentary"
+                | ``Lightly Active`` -> "Lightly Active"
+                | ``Highly Active`` -> "Highly Active"
+
             static member Default =
                 Sedentary
 
