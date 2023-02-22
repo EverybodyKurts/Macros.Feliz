@@ -10,4 +10,4 @@ importSideEffects "./styles/global.scss"
 let htmlElement= document.getElementById "feliz-app"
 let root = ReactDOM.createRoot htmlElement
 
-root.render (Components.Router())
+root.render (Calculator.View())
