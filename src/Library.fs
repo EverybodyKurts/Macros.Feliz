@@ -357,8 +357,8 @@ module Library =
             member this.BodyWeightFields : ReactElement =
                 let inputHtmls =
                     [ this.Input ]
-                    @ this.WeightKgOption
                     @ this.WeightLbOption
+                    @ this.WeightKgOption
 
                 Html.div [
                     prop.className "mb-3"
