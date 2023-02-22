@@ -189,7 +189,7 @@ module Library =
             static member Default : Weight =
                 {
                     Amount = None
-                    Unit = Kg
+                    Unit = Lb
                 }
 
             member this.Validate() : Result<Domain.Mass, string> =
