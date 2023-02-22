@@ -10,7 +10,6 @@
     <Compile Include="Library.fs" />
     <Compile Include="Bootstrap.fs" />
     <Compile Include="Calculator.fs" />
-    <Compile Include="ElmishCounter.fs" />
     <Compile Include="Components.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
