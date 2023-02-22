@@ -421,7 +421,7 @@ module Library =
                     | None -> []
 
                 Html.div [
-                    prop.className "card"
+                    prop.className "card mt-3"
 
                     prop.children [
                         Html.div [
