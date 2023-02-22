@@ -94,6 +94,9 @@ module Library =
                 | ``Lightly Active`` -> 1.55
                 | ``Highly Active`` -> 1.75
 
+            static member Default =
+                Sedentary
+
         type DailyCaloricExpenditure = {
             BodyComposition: BodyComposition
             DailyActivityLevel: DailyActivityLevel
