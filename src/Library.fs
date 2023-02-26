@@ -34,6 +34,11 @@ module Library =
                 | Kg kg1, Kg kg2 -> Kg <| kg1 - kg2
                 | Kg kg, Lb lb -> Kg <| kg - (lb * kgPerLb)
 
+            static member (*)(mass: Mass, num: float) : Mass =
+                match mass with
+                | Lb lb -> Lb <| lb * num
+                | Kg kg -> Kg <| kg * num
+
             member this.ToLb() : Mass =
                 match this with
                 | Kg kg -> Lb <| kg * lbPerKg
@@ -58,6 +63,7 @@ module Library =
             member this.KgMeasure : float<kg> =
                 match this.ToKg() with
                 | Kg kg -> kg
+                | _ -> invalidOp "Domain.Mass.KgMeasure threw an exception"
 
         /// Calculate basal metabolic rate with the Katch-McArdle formula
         let basalMetabolicRate (leanBodyMass: float<kg>) : float<kcal> =
@@ -80,6 +86,27 @@ module Library =
             member this.BasalMetabolicRate : float<kcal> =
                 match this.LeanMuscleMass.ToKg() with
                 | Kg kg -> basalMetabolicRate kg
+                | _ -> invalidOp "Domain.BodyComposition.BasalMetabolicRate threw an exception"
+
+            /// Compute body composition at a certain bodyfat % with the current lean muscle mass
+            member this.AtBodyFatPercentage(bodyFatPercentage: uint<pct>) : BodyComposition =
+                let bfPct = (float bodyFatPercentage) * 1.0<pct>
+
+                let lmm = this.LeanMuscleMass
+                let ratio = 100.0<pct> / (100.0<pct> - bfPct)
+
+                {
+                    BodyWeight = lmm * ratio
+                    BodyfatPercentage = bodyFatPercentage
+                }
+
+            /// Project body composition at lower and lower bodyfat %s
+            member this.Projections : BodyComposition seq =
+                seq { 6u<pct> .. 2u<pct> .. this.BodyfatPercentage}
+                |> Seq.sortDescending
+                |> Seq.map this.AtBodyFatPercentage
+                |> Seq.skipWhile (fun bodyComposition -> bodyComposition = this)
+
 
         type DailyActivityLevel =
             | Sedentary
