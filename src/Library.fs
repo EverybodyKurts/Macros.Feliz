@@ -114,7 +114,7 @@ module Library =
             | ``Lightly Active``
             | ``Highly Active``
 
-            member this.Multipliier : float =
+            member this.Multiplier : float =
                 match this with
                 | Sedentary -> 1.15
                 | ``Mostly Sedentary`` -> 1.35
@@ -131,34 +131,30 @@ module Library =
             static member Default =
                 Sedentary
 
-        type DailyCaloricExpenditure = {
-            BodyComposition: BodyComposition
-            DailyActivityLevel: DailyActivityLevel
-        } with
-            member this.Total : float<kcal> =
-                this.DailyActivityLevel.Multipliier * this.BodyComposition.BasalMetabolicRate
-
         type DailyMacronutrient = {
             Grams: float<g>
             Calories: float<kcal>
             Percentage: float<pct>
         }
 
+        module ProteinGramsPerKgLeanBodyMass =
+            let range = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
+
         type DailyMacros = {
-            DailyCaloricExpenditure: DailyCaloricExpenditure
+            BodyComposition: BodyComposition
+            DailyActivityLevel: DailyActivityLevel
             ProteinGramsPerKgLeanBodyMass: float<g/kg>
         } with
-
-            member this.BodyComposition : BodyComposition =
-                this.DailyCaloricExpenditure.BodyComposition
-
             member this.LeanMuscleMass : Mass =
                 this.BodyComposition.LeanMuscleMass
+
+            member this.TotalCalories : float<kcal> =
+                this.DailyActivityLevel.Multiplier * this.BodyComposition.BasalMetabolicRate
 
             member this.Protein : DailyMacronutrient =
                 let grams = this.LeanMuscleMass.KgMeasure * this.ProteinGramsPerKgLeanBodyMass
                 let cals = grams * Macronutrients.ProteinCaloriesPerGram
-                let percentage = (cals / this.DailyCaloricExpenditure.Total) * 100.0<pct>
+                let percentage = (cals / this.TotalCalories) * 100.0<pct>
 
                 {
                     Grams = grams
@@ -167,9 +163,9 @@ module Library =
                 }
 
             member this.Fat : DailyMacronutrient =
-                let calories = (this.DailyCaloricExpenditure.Total - this.Protein.Calories) / 2.0
+                let calories = (this.TotalCalories - this.Protein.Calories) / 2.0
                 let grams = calories / Macronutrients.FatCaloriesPerGram
-                let percentage = (calories / this.DailyCaloricExpenditure.Total) * 100.0<pct>
+                let percentage = (calories / this.TotalCalories) * 100.0<pct>
 
                 {
                     Grams = grams
@@ -178,9 +174,9 @@ module Library =
                 }
 
             member this.Carbs : DailyMacronutrient =
-                let calories = (this.DailyCaloricExpenditure.Total - this.Protein.Calories) / 2.0
+                let calories = (this.TotalCalories - this.Protein.Calories) / 2.0
                 let grams = calories / Macronutrients.CarbCaloriesPerGram
-                let percentage = (calories / this.DailyCaloricExpenditure.Total) * 100.0<pct>
+                let percentage = (calories / this.TotalCalories) * 100.0<pct>
 
                 {
                     Grams = grams
