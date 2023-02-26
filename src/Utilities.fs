@@ -8,3 +8,10 @@ module Utilities =
             match result with
             | Ok ok -> Some ok
             | Error _ -> None
+
+    [<RequireQualifiedAccess>]
+    module Option =
+        let inline toResult (error: 'err) (option: 'ok option) : Result<'ok, 'err> =
+            match option with
+            | Some ok -> Ok ok
+            | None -> Error error
