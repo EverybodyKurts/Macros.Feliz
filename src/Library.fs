@@ -292,6 +292,35 @@ module Library =
             member this.UpdateBodyfatPercentage (percentage: int) : BodyComposition =
                 { this with BodyfatPercentage = Some percentage }
 
+        module ProteinGramsPerKgLeanBodyMass =
+            let validate (proteinGrams: float) : Result<float<g/kg>,string> =
+                let p = proteinGrams * 1.0<g/kg>
+
+                let rangeMin = Domain.ProteinGramsPerKgLeanBodyMass.range |> Seq.min
+                let rangeMax = Domain.ProteinGramsPerKgLeanBodyMass.range |> Seq.max
+
+                if rangeMin <= p && p <= rangeMax then
+                    Ok p
+                else
+                    Error $"Protein grams must be between {rangeMin} && {rangeMax}"
+
+        type DailyMacros = {
+            BodyComposition: Domain.BodyComposition
+            DailyActivityLevel: Domain.DailyActivityLevel option
+            ProteinGramsPerKgLeanBodyMass: float
+        } with
+            member this.Validate() : Validation<Domain.DailyMacros, string> =
+                validation {
+                    let! dal = this.DailyActivityLevel |> Utilities.Option.toResult "Daily activity level must be present"
+                    and! proteinGrams = this.ProteinGramsPerKgLeanBodyMass |> ProteinGramsPerKgLeanBodyMass.validate
+
+                    return {
+                        BodyComposition = this.BodyComposition
+                        DailyActivityLevel = dal
+                        ProteinGramsPerKgLeanBodyMass = proteinGrams
+                    }
+                }
+
     module Html =
         open Feliz
 
