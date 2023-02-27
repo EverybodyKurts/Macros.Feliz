@@ -352,31 +352,52 @@ module Library =
                 }
 
     module Html =
+        open FsToolkit.ErrorHandling
         open Feliz
+
+        module BodyComposition =
+            type EventHandlers = {
+                UpdateWeightAmount: float -> unit
+                UpdateBodyfatPercentage: int -> unit
+                SelectKgUnit: Browser.Types.MouseEvent -> unit
+                SelectLbUnit: Browser.Types.MouseEvent -> unit
+                ProceedToNextStep: (Browser.Types.MouseEvent -> unit) option
+            }
+
+            type Status =
+                | Enabled of EventHandlers
+                | Disabled
 
         type BodyCompositionFields = {
             Form: Form.BodyComposition
-            UpdateWeightAmount: float -> unit
-            UpdateBodyfatPercentage: int -> unit
-            SelectKgUnit: Browser.Types.MouseEvent -> unit
-            SelectLbUnit: Browser.Types.MouseEvent -> unit
-            ProceedToNextStep: (Browser.Types.MouseEvent -> unit) option
+            Status: BodyComposition.Status
         } with
-            static member Create(form: Form.BodyComposition,
-                                 updateWeightAmount: float -> unit,
-                                 updateBodyfatPercentage: int -> unit,
-                                 selectKgUnit: Browser.Types.MouseEvent -> unit,
-                                 selectLbUnit: Browser.Types.MouseEvent -> unit,
-                                 ?proceedToNextStep: Browser.Types.MouseEvent -> unit
-                                ): BodyCompositionFields =
+            static member CreateEnabled(form: Form.BodyComposition,
+                                        updateWeightAmount: float -> unit,
+                                        updateBodyfatPercentage: int -> unit,
+                                        selectKgUnit: Browser.Types.MouseEvent -> unit,
+                                        selectLbUnit: Browser.Types.MouseEvent -> unit,
+                                        ?proceedToNextStep: Browser.Types.MouseEvent -> unit
+                                        ): BodyCompositionFields =
+
+                let enabledStatus =
+                    BodyComposition.Enabled {
+                        UpdateWeightAmount = updateWeightAmount
+                        UpdateBodyfatPercentage = updateBodyfatPercentage
+                        SelectKgUnit = selectKgUnit
+                        SelectLbUnit = selectLbUnit
+                        ProceedToNextStep = proceedToNextStep
+                    }
 
                 {
                     Form = form
-                    UpdateWeightAmount = updateWeightAmount
-                    UpdateBodyfatPercentage = updateBodyfatPercentage
-                    SelectKgUnit = selectKgUnit
-                    SelectLbUnit = selectLbUnit
-                    ProceedToNextStep = proceedToNextStep
+                    Status = enabledStatus
+                }
+
+            static member CreateDisabled(form: Form.BodyComposition) : BodyCompositionFields =
+                {
+                    Form = form
+                    Status = BodyComposition.Disabled
                 }
 
             member private _.InputHtmlId = "body-weight-amount-input"
