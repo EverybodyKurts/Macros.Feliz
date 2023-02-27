@@ -340,6 +340,17 @@ module Library =
                     }
                 }
 
+            static member Create(bodyComposition: Domain.BodyComposition, ?dailyActivityLevel: string, ?proteinGramsPerKgLeanBodyMass: float) : DailyMacros =
+                let dailyActivityLevel = defaultArg dailyActivityLevel ""
+                let averageProteinGrams = Domain.ProteinGramsPerKgLeanBodyMass.range |> Seq.average |> float
+                let proteinGrams = defaultArg proteinGramsPerKgLeanBodyMass averageProteinGrams
+
+                {
+                    BodyComposition = bodyComposition
+                    DailyActivityLevel = dailyActivityLevel
+                    ProteinGramsPerKgLeanBodyMass = proteinGrams
+                }
+
     module Html =
         open Feliz
 
