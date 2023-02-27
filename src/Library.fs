@@ -400,7 +400,20 @@ module Library =
                     Status = BodyComposition.Disabled
                 }
 
-            member private _.InputHtmlId = "body-weight-amount-input"
+            member private _.InputHtmlId : string = "body-weight-amount-input"
+
+            member this.IsEnabled : bool =
+                match this.Status with
+                | BodyComposition.Enabled _ -> true
+                | _ -> false
+
+            member this.IsDisabled : bool =
+                not this.IsEnabled
+
+            member private this.TryEventHandlers : BodyComposition.EventHandlers option =
+                match this.Status with
+                | BodyComposition.Enabled eventHandlers -> Some eventHandlers
+                | _ -> None
 
             member this.Label : ReactElement =
                 Html.label [
@@ -409,14 +422,19 @@ module Library =
                     prop.text "Body Weight"
                 ]
 
-            member this.Input : ReactElement =
+            member this.WeightAmountInput : ReactElement =
+                let changeProperty =
+                    match this.TryEventHandlers with
+                    | Some eventHandlers -> [ prop.onChange eventHandlers.UpdateWeightAmount ]
+                    | _ -> []
+
                 let baseProperties = [
                     prop.id this.InputHtmlId
                     prop.type' "number"
                     prop.min 0
                     prop.className "form-control"
                     prop.placeholder "How much do you weigh?"
-                    prop.onChange this.UpdateWeightAmount
+                    prop.disabled (not this.IsEnabled)
                 ]
 
                 let valueProperty =
@@ -424,22 +442,31 @@ module Library =
                     | Some amount -> [ prop.value amount ]
                     | _ -> []
 
-                Html.input (baseProperties @ valueProperty)
+                Html.input (baseProperties @ valueProperty @ changeProperty)
 
             member private _.WeightUnitOptions = "weightUnitOptions"
 
             member this.WeightKgOption : ReactElement list =
                 let optionName = "kgUnitOption"
 
-                [
-                    Html.input [
+                let changeProperty =
+                    match this.TryEventHandlers with
+                    | Some eventHandlers -> [ prop.onClick eventHandlers.SelectKgUnit ]
+                    | _ -> []
+
+                let inputProperties =
+                    [
                         prop.type' "radio"
                         prop.className "btn-check"
                         prop.name this.WeightUnitOptions
                         prop.id optionName
                         prop.isChecked this.Form.Weight.Unit.IsKilogram
-                        prop.onClick this.SelectKgUnit
+                        prop.disabled (not this.IsEnabled)
                     ]
+
+
+                [
+                    Html.input (inputProperties @ changeProperty)
                     Html.label [
                         prop.classes ["btn"; "btn-secondary"]
                         prop.for' optionName
@@ -450,15 +477,23 @@ module Library =
             member this.WeightLbOption : ReactElement list =
                 let optionName = "lbUnitOption"
 
-                [
-                    Html.input [
+                let changeProperty =
+                    match this.TryEventHandlers with
+                    | Some eventHandlers -> [ prop.onClick eventHandlers.SelectLbUnit ]
+                    | None -> []
+
+                let inputProperties =
+                    [
                         prop.type' "radio"
                         prop.className "btn-check"
                         prop.name this.WeightUnitOptions
                         prop.id optionName
                         prop.isChecked this.Form.Weight.Unit.IsPound
-                        prop.onClick this.SelectLbUnit
+                        prop.disabled (not this.IsEnabled)
                     ]
+
+                [
+                    Html.input (inputProperties @ changeProperty)
                     Html.label [
                         prop.classes ["btn"; "btn-secondary"]
                         prop.for' optionName
@@ -468,7 +503,7 @@ module Library =
 
             member this.BodyWeightFields : ReactElement =
                 let inputHtmls =
-                    [ this.Input ]
+                    [ this.WeightAmountInput ]
                     @ this.WeightLbOption
                     @ this.WeightKgOption
 
@@ -485,6 +520,24 @@ module Library =
                 ]
 
             member this.BodyfatPercentage : ReactElement =
+                let changeProperty =
+                    match this.TryEventHandlers with
+                    | Some eventHandlers ->
+                        [ prop.onChange eventHandlers.UpdateBodyfatPercentage ]
+                    | None -> []
+
+                let inputProperties =
+                    [
+                        prop.type' "number"
+                        prop.min 0
+                        prop.max 100
+                        prop.className "form-control"
+                        prop.placeholder "Enter your bodyfat %"
+                        prop.ariaLabel "Bodyfat Percentage"
+                        prop.ariaDescribedBy "bodyfat-pct"
+                        prop.disabled (not this.IsEnabled)
+                    ]
+
                 Html.div [
                     prop.className "mb-3"
                     prop.children [
@@ -496,17 +549,7 @@ module Library =
                         Html.div [
                             prop.className "input-group"
                             prop.children [
-                                Html.input [
-                                    prop.type' "number"
-                                    prop.min 0
-                                    prop.max 100
-                                    prop.className "form-control"
-                                    prop.placeholder "Enter your bodyfat %"
-                                    prop.ariaLabel "Bodyfat Percentage"
-                                    prop.ariaDescribedBy "bodyfat-pct"
-                                    prop.onChange this.UpdateBodyfatPercentage
-                                ]
-
+                                Html.input (inputProperties @ changeProperty)
                                 Html.span [
                                     prop.className "input-group-text"
                                     prop.id "bodyfat-pct"
@@ -518,7 +561,10 @@ module Library =
                 ]
 
             member this.Card : ReactElement =
-                let isDisabled = this.ProceedToNextStep.IsNone
+                let isDisabled =
+                    match this.TryEventHandlers with
+                    | Some eventHandlers -> eventHandlers.ProceedToNextStep.IsNone
+                    | None -> true
 
                 let defaultButtonProperties =
                     [
@@ -527,17 +573,27 @@ module Library =
                         prop.disabled isDisabled
                     ]
 
-                let handlerProperty = 
-                    match this.ProceedToNextStep with
-                    | Some handler -> [ prop.onClick handler]
-                    | None -> []
+                let handlerProperty =
+                    option {
+                        let! eventHandlers = this.TryEventHandlers
+                        let! handler = eventHandlers.ProceedToNextStep
+
+                        return [ prop.onClick handler ]
+                    } |> Option.defaultValue []
+
+
+                let headerCss =
+                    if this.IsEnabled then
+                        prop.classes ["card-header"; "text-bg-primary"]
+                    else
+                        prop.className "card-header"
 
                 Html.div [
                     prop.className "card mt-3"
 
                     prop.children [
                         Html.div [
-                            prop.className "card-header"
+                            headerCss
                             prop.text "Body Composition"
                         ]
 
@@ -554,41 +610,95 @@ module Library =
                             prop.children [
                                 Html.button (defaultButtonProperties @ handlerProperty)
                             ]
-                        ]
-                    ]
-                ]
+                        ] ] ]
+
+        module DailyMacrosFields =
+            type EventHandlers = {
+                SelectActivityLevel: (Browser.Types.Event -> unit)
+            }
 
         module DailyActivityFields =
 
-            let levelSelect(activityLevel: Domain.DailyActivityLevel) =
-                Html.select [
+        type DailyMacrosFields =
+            | EnabledMacrosFields of form: Form.DailyMacros * eventHandlers: DailyMacrosFields.EventHandlers
+            | DisabledMacrosFields of form: Form.DailyMacros option
+
+            member this.IsEnabled : bool =
+                match this with
+                | EnabledMacrosFields _ -> true
+                | _ -> false
+
+            member this.IsDisabled : bool =
+                not this.IsEnabled
+
+            member this.DailyActivityLevel : string option =
+                match this with
+                | EnabledMacrosFields (form, _) -> Some form.DailyActivityLevel
+                | DisabledMacrosFields form ->
+                    option {
+                        let! dailyMacros = form
+                        return! dailyMacros.DailyActivityLevel
+                    }
+
+            member this.TryEventHandlers : DailyMacrosFields.EventHandlers option =
+                match this with
+                | EnabledMacrosFields (_, eventHandlers) -> Some eventHandlers
+                | _ -> None
+
+            /// Display select fields for daily activity
+            member this.LevelSelect : ReactElement =
+                let eventHandlerProperties =
+                    match this.TryEventHandlers with
+                    | Some eventHandlers -> [ prop.onSelect eventHandlers.SelectActivityLevel ]
+                    | None -> []
+
+                let selectProperties = [
+                    prop.disabled this.IsDisabled
+                    prop.className "form-select"
                     prop.children [
                         Html.option [
+                            prop.text ""
+                            prop.selected this.DailyActivityLevel.IsNone
+                            prop.value ""
+                        ]
+                        Html.option [
                             prop.text (Domain.DailyActivityLevel.Sedentary.ToString())
-                            prop.selected (Domain.DailyActivityLevel.Sedentary.ToString() = activityLevel.ToString())
+                            prop.selected (Some (Domain.DailyActivityLevel.Sedentary.ToString()) = this.DailyActivityLevel)
+                            prop.value (Domain.DailyActivityLevel.Sedentary.ToString())
                         ]
                         Html.option [
                             prop.text (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
-                            prop.selected (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString() = activityLevel.ToString())
+                            prop.selected (Some (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString()) = this.DailyActivityLevel)
+                            prop.value (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
                         ]
                         Html.option [
                             prop.text (Domain.DailyActivityLevel.``Lightly Active``.ToString())
-                            prop.selected (Domain.DailyActivityLevel.``Lightly Active``.ToString() = activityLevel.ToString())
+                            prop.selected (Some (Domain.DailyActivityLevel.``Lightly Active``.ToString()) = this.DailyActivityLevel)
+                            prop.value (Domain.DailyActivityLevel.``Lightly Active``.ToString())
                         ]
                         Html.option [
                             prop.text (Domain.DailyActivityLevel.``Highly Active``.ToString())
-                            prop.selected (Domain.DailyActivityLevel.``Highly Active``.ToString() = activityLevel.ToString())
+                            prop.selected (Some (Domain.DailyActivityLevel.``Highly Active``.ToString()) = this.DailyActivityLevel)
+                            prop.value (Domain.DailyActivityLevel.``Highly Active``.ToString())
                         ]
                     ]
                 ]
 
-            let card : ReactElement =
+                Html.select (eventHandlerProperties @ selectProperties)
+
+            member this.Card : ReactElement =
+                let cardCss =
+                    if this.IsEnabled then
+                        prop.classes ["card-header"; "text-bg-primary"]
+                    else
+                        prop.className "card-header"
+
                 Html.div [
                     prop.className "card mt-3"
 
                     prop.children [
                         Html.div [
-                            prop.className "card-header"
+                            cardCss
                             prop.text "Daily Activity"
                         ]
 
@@ -596,8 +706,8 @@ module Library =
                             prop.className "card-body"
 
                             prop.children [
+                                this.LevelSelect
                             ]
                         ]
                     ]
-
                 ]
