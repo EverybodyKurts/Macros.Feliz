@@ -368,351 +368,352 @@ module Library =
                 | Enabled of EventHandlers
                 | Disabled
 
-        type BodyCompositionFields = {
-            Form: Form.BodyComposition
-            Status: BodyComposition.Status
-        } with
-            static member CreateEnabled(form: Form.BodyComposition,
-                                        updateWeightAmount: float -> unit,
-                                        updateBodyfatPercentage: int -> unit,
-                                        selectKgUnit: Browser.Types.MouseEvent -> unit,
-                                        selectLbUnit: Browser.Types.MouseEvent -> unit,
-                                        ?proceedToNextStep: Browser.Types.MouseEvent -> unit
-                                        ): BodyCompositionFields =
+            type Fields = {
+                Form: Form.BodyComposition
+                Status: Status
+            } with
+                static member CreateEnabled(form: Form.BodyComposition,
+                                            updateWeightAmount: float -> unit,
+                                            updateBodyfatPercentage: int -> unit,
+                                            selectKgUnit: Browser.Types.MouseEvent -> unit,
+                                            selectLbUnit: Browser.Types.MouseEvent -> unit,
+                                            ?proceedToNextStep: Browser.Types.MouseEvent -> unit
+                                            ): Fields =
 
-                let enabledStatus =
-                    BodyComposition.Enabled {
-                        UpdateWeightAmount = updateWeightAmount
-                        UpdateBodyfatPercentage = updateBodyfatPercentage
-                        SelectKgUnit = selectKgUnit
-                        SelectLbUnit = selectLbUnit
-                        ProceedToNextStep = proceedToNextStep
+                    let enabledStatus =
+                        Enabled {
+                            UpdateWeightAmount = updateWeightAmount
+                            UpdateBodyfatPercentage = updateBodyfatPercentage
+                            SelectKgUnit = selectKgUnit
+                            SelectLbUnit = selectLbUnit
+                            ProceedToNextStep = proceedToNextStep
+                        }
+
+                    {
+                        Form = form
+                        Status = enabledStatus
                     }
 
-                {
-                    Form = form
-                    Status = enabledStatus
-                }
+                static member CreateDisabled(form: Form.BodyComposition) : Fields =
+                    {
+                        Form = form
+                        Status = Disabled
+                    }
 
-            static member CreateDisabled(form: Form.BodyComposition) : BodyCompositionFields =
-                {
-                    Form = form
-                    Status = BodyComposition.Disabled
-                }
+                member private _.InputHtmlId : string = "body-weight-amount-input"
 
-            member private _.InputHtmlId : string = "body-weight-amount-input"
+                member this.IsEnabled : bool =
+                    match this.Status with
+                    | Enabled _ -> true
+                    | _ -> false
 
-            member this.IsEnabled : bool =
-                match this.Status with
-                | BodyComposition.Enabled _ -> true
-                | _ -> false
+                member this.IsDisabled : bool =
+                    not this.IsEnabled
 
-            member this.IsDisabled : bool =
-                not this.IsEnabled
+                member private this.TryEventHandlers : EventHandlers option =
+                    match this.Status with
+                    | Enabled eventHandlers -> Some eventHandlers
+                    | _ -> None
 
-            member private this.TryEventHandlers : BodyComposition.EventHandlers option =
-                match this.Status with
-                | BodyComposition.Enabled eventHandlers -> Some eventHandlers
-                | _ -> None
-
-            member this.Label : ReactElement =
-                Html.label [
-                    prop.for' this.InputHtmlId
-                    prop.className "form-label"
-                    prop.text "Body Weight"
-                ]
-
-            member this.WeightAmountInput : ReactElement =
-                let changeProperty =
-                    match this.TryEventHandlers with
-                    | Some eventHandlers -> [ prop.onChange eventHandlers.UpdateWeightAmount ]
-                    | _ -> []
-
-                let baseProperties = [
-                    prop.id this.InputHtmlId
-                    prop.type' "number"
-                    prop.min 0
-                    prop.className "form-control"
-                    prop.placeholder "How much do you weigh?"
-                    prop.disabled (not this.IsEnabled)
-                ]
-
-                let valueProperty =
-                    match this.Form.Weight.Amount with
-                    | Some amount -> [ prop.value amount ]
-                    | _ -> []
-
-                Html.input (baseProperties @ valueProperty @ changeProperty)
-
-            member private _.WeightUnitOptions = "weightUnitOptions"
-
-            member this.WeightKgOption : ReactElement list =
-                let optionName = "kgUnitOption"
-
-                let changeProperty =
-                    match this.TryEventHandlers with
-                    | Some eventHandlers -> [ prop.onClick eventHandlers.SelectKgUnit ]
-                    | _ -> []
-
-                let inputProperties =
-                    [
-                        prop.type' "radio"
-                        prop.className "btn-check"
-                        prop.name this.WeightUnitOptions
-                        prop.id optionName
-                        prop.isChecked this.Form.Weight.Unit.IsKilogram
-                        prop.disabled (not this.IsEnabled)
-                    ]
-
-
-                [
-                    Html.input (inputProperties @ changeProperty)
+                member this.Label : ReactElement =
                     Html.label [
-                        prop.classes ["btn"; "btn-secondary"]
-                        prop.for' optionName
-                        prop.text "Kg"
-                    ]
-                ]
-
-            member this.WeightLbOption : ReactElement list =
-                let optionName = "lbUnitOption"
-
-                let changeProperty =
-                    match this.TryEventHandlers with
-                    | Some eventHandlers -> [ prop.onClick eventHandlers.SelectLbUnit ]
-                    | None -> []
-
-                let inputProperties =
-                    [
-                        prop.type' "radio"
-                        prop.className "btn-check"
-                        prop.name this.WeightUnitOptions
-                        prop.id optionName
-                        prop.isChecked this.Form.Weight.Unit.IsPound
-                        prop.disabled (not this.IsEnabled)
+                        prop.for' this.InputHtmlId
+                        prop.className "form-label"
+                        prop.text "Body Weight"
                     ]
 
-                [
-                    Html.input (inputProperties @ changeProperty)
-                    Html.label [
-                        prop.classes ["btn"; "btn-secondary"]
-                        prop.for' optionName
-                        prop.text "Lb"
-                    ]
-                ]
+                member this.WeightAmountInput : ReactElement =
+                    let changeProperty =
+                        match this.TryEventHandlers with
+                        | Some eventHandlers -> [ prop.onChange eventHandlers.UpdateWeightAmount ]
+                        | _ -> []
 
-            member this.BodyWeightFields : ReactElement =
-                let inputHtmls =
-                    [ this.WeightAmountInput ]
-                    @ this.WeightLbOption
-                    @ this.WeightKgOption
-
-                Html.div [
-                    prop.className "mb-3"
-                    prop.children [
-                        this.Label
-
-                        Html.div [
-                            prop.className "input-group"
-                            prop.children inputHtmls
-                        ]
-                    ]
-                ]
-
-            member this.BodyfatPercentage : ReactElement =
-                let changeProperty =
-                    match this.TryEventHandlers with
-                    | Some eventHandlers ->
-                        [ prop.onChange eventHandlers.UpdateBodyfatPercentage ]
-                    | None -> []
-
-                let inputProperties =
-                    [
+                    let baseProperties = [
+                        prop.id this.InputHtmlId
                         prop.type' "number"
                         prop.min 0
-                        prop.max 100
                         prop.className "form-control"
-                        prop.placeholder "Enter your bodyfat %"
-                        prop.ariaLabel "Bodyfat Percentage"
-                        prop.ariaDescribedBy "bodyfat-pct"
+                        prop.placeholder "How much do you weigh?"
                         prop.disabled (not this.IsEnabled)
                     ]
 
-                Html.div [
-                    prop.className "mb-3"
-                    prop.children [
-                        Html.label [
-                            prop.for' "bodyfat-pct"
-                            prop.className "form-label"
-                            prop.text "Bodyfat %"
+                    let valueProperty =
+                        match this.Form.Weight.Amount with
+                        | Some amount -> [ prop.value amount ]
+                        | _ -> []
+
+                    Html.input (baseProperties @ valueProperty @ changeProperty)
+
+                member private _.WeightUnitOptions = "weightUnitOptions"
+
+                member this.WeightKgOption : ReactElement list =
+                    let optionName = "kgUnitOption"
+
+                    let changeProperty =
+                        match this.TryEventHandlers with
+                        | Some eventHandlers -> [ prop.onClick eventHandlers.SelectKgUnit ]
+                        | _ -> []
+
+                    let inputProperties =
+                        [
+                            prop.type' "radio"
+                            prop.className "btn-check"
+                            prop.name this.WeightUnitOptions
+                            prop.id optionName
+                            prop.isChecked this.Form.Weight.Unit.IsKilogram
+                            prop.disabled (not this.IsEnabled)
                         ]
-                        Html.div [
-                            prop.className "input-group"
-                            prop.children [
-                                Html.input (inputProperties @ changeProperty)
-                                Html.span [
-                                    prop.className "input-group-text"
-                                    prop.id "bodyfat-pct"
-                                    prop.text "%"
+
+
+                    [
+                        Html.input (inputProperties @ changeProperty)
+                        Html.label [
+                            prop.classes ["btn"; "btn-secondary"]
+                            prop.for' optionName
+                            prop.text "Kg"
+                        ]
+                    ]
+
+                member this.WeightLbOption : ReactElement list =
+                    let optionName = "lbUnitOption"
+
+                    let changeProperty =
+                        match this.TryEventHandlers with
+                        | Some eventHandlers -> [ prop.onClick eventHandlers.SelectLbUnit ]
+                        | None -> []
+
+                    let inputProperties =
+                        [
+                            prop.type' "radio"
+                            prop.className "btn-check"
+                            prop.name this.WeightUnitOptions
+                            prop.id optionName
+                            prop.isChecked this.Form.Weight.Unit.IsPound
+                            prop.disabled (not this.IsEnabled)
+                        ]
+
+                    [
+                        Html.input (inputProperties @ changeProperty)
+                        Html.label [
+                            prop.classes ["btn"; "btn-secondary"]
+                            prop.for' optionName
+                            prop.text "Lb"
+                        ]
+                    ]
+
+                member this.BodyWeightFields : ReactElement =
+                    let inputHtmls =
+                        [ this.WeightAmountInput ]
+                        @ this.WeightLbOption
+                        @ this.WeightKgOption
+
+                    Html.div [
+                        prop.className "mb-3"
+                        prop.children [
+                            this.Label
+
+                            Html.div [
+                                prop.className "input-group"
+                                prop.children inputHtmls
+                            ]
+                        ]
+                    ]
+
+                member this.BodyfatPercentage : ReactElement =
+                    let changeProperty =
+                        match this.TryEventHandlers with
+                        | Some eventHandlers ->
+                            [ prop.onChange eventHandlers.UpdateBodyfatPercentage ]
+                        | None -> []
+
+                    let inputProperties =
+                        [
+                            prop.type' "number"
+                            prop.min 0
+                            prop.max 100
+                            prop.className "form-control"
+                            prop.placeholder "Enter your bodyfat %"
+                            prop.ariaLabel "Bodyfat Percentage"
+                            prop.ariaDescribedBy "bodyfat-pct"
+                            prop.disabled (not this.IsEnabled)
+                        ]
+
+                    Html.div [
+                        prop.className "mb-3"
+                        prop.children [
+                            Html.label [
+                                prop.for' "bodyfat-pct"
+                                prop.className "form-label"
+                                prop.text "Bodyfat %"
+                            ]
+                            Html.div [
+                                prop.className "input-group"
+                                prop.children [
+                                    Html.input (inputProperties @ changeProperty)
+                                    Html.span [
+                                        prop.className "input-group-text"
+                                        prop.id "bodyfat-pct"
+                                        prop.text "%"
+                                    ]
                                 ]
                             ]
                         ]
                     ]
-                ]
 
-            member this.Card : ReactElement =
-                let isDisabled =
-                    match this.TryEventHandlers with
-                    | Some eventHandlers -> eventHandlers.ProceedToNextStep.IsNone
-                    | None -> true
+                member this.Card : ReactElement =
+                    let isDisabled =
+                        match this.TryEventHandlers with
+                        | Some eventHandlers -> eventHandlers.ProceedToNextStep.IsNone
+                        | None -> true
 
-                let defaultButtonProperties =
-                    [
-                        prop.className "btn btn-primary"
-                        prop.text "Next"
-                        prop.disabled isDisabled
+                    let defaultButtonProperties =
+                        [
+                            prop.className "btn btn-primary"
+                            prop.text "Next"
+                            prop.disabled isDisabled
+                        ]
+
+                    let handlerProperty =
+                        option {
+                            let! eventHandlers = this.TryEventHandlers
+                            let! handler = eventHandlers.ProceedToNextStep
+
+                            return [ prop.onClick handler ]
+                        } |> Option.defaultValue []
+
+
+                    let headerCss =
+                        if this.IsEnabled then
+                            prop.classes ["card-header"; "text-bg-primary"]
+                        else
+                            prop.className "card-header"
+
+                    Html.div [
+                        prop.className "card mt-3"
+
+                        prop.children [
+                            Html.div [
+                                headerCss
+                                prop.text "Body Composition"
+                            ]
+
+                            Html.div [
+                                prop.className "card-body"
+                                prop.children [
+                                    this.BodyWeightFields
+                                    this.BodyfatPercentage
+                                ]
+                            ]
+
+                            Html.div [
+                                prop.className "card-footer"
+                                prop.children [
+                                    Html.button (defaultButtonProperties @ handlerProperty)
+                                ]
+                            ]
+                        ]
                     ]
 
-                let handlerProperty =
-                    option {
-                        let! eventHandlers = this.TryEventHandlers
-                        let! handler = eventHandlers.ProceedToNextStep
-
-                        return [ prop.onClick handler ]
-                    } |> Option.defaultValue []
-
-
-                let headerCss =
-                    if this.IsEnabled then
-                        prop.classes ["card-header"; "text-bg-primary"]
-                    else
-                        prop.className "card-header"
-
-                Html.div [
-                    prop.className "card mt-3"
-
-                    prop.children [
-                        Html.div [
-                            headerCss
-                            prop.text "Body Composition"
-                        ]
-
-                        Html.div [
-                            prop.className "card-body"
-                            prop.children [
-                                this.BodyWeightFields
-                                this.BodyfatPercentage
-                            ]
-                        ]
-
-                        Html.div [
-                            prop.className "card-footer"
-                            prop.children [
-                                Html.button (defaultButtonProperties @ handlerProperty)
-                            ]
-                        ] ] ]
-
-        module DailyMacrosFields =
+        module DailyMacros =
             type EventHandlers = {
                 SelectActivityLevel: (Browser.Types.Event -> unit)
             }
 
+            type Fields =
+                | EnabledMacrosFields of form: Form.DailyMacros * eventHandlers: EventHandlers
+                | DisabledMacrosFields of form: Form.DailyMacros option
 
-        type DailyMacrosFields =
-            | EnabledMacrosFields of form: Form.DailyMacros * eventHandlers: DailyMacrosFields.EventHandlers
-            | DisabledMacrosFields of form: Form.DailyMacros option
+                member this.IsEnabled : bool =
+                    match this with
+                    | EnabledMacrosFields _ -> true
+                    | _ -> false
 
-            member this.IsEnabled : bool =
-                match this with
-                | EnabledMacrosFields _ -> true
-                | _ -> false
+                member this.IsDisabled : bool =
+                    not this.IsEnabled
 
-            member this.IsDisabled : bool =
-                not this.IsEnabled
+                member this.DailyActivityLevel : string option =
+                    match this with
+                    | EnabledMacrosFields (form, _) -> Some form.DailyActivityLevel
+                    | DisabledMacrosFields form ->
+                        option {
+                            let! dailyMacros = form
+                            return! dailyMacros.DailyActivityLevel
+                        }
 
-            member this.DailyActivityLevel : string option =
-                match this with
-                | EnabledMacrosFields (form, _) -> Some form.DailyActivityLevel
-                | DisabledMacrosFields form ->
-                    option {
-                        let! dailyMacros = form
-                        return! dailyMacros.DailyActivityLevel
-                    }
+                member this.TryEventHandlers : EventHandlers option =
+                    match this with
+                    | EnabledMacrosFields (_, eventHandlers) -> Some eventHandlers
+                    | _ -> None
 
-            member this.TryEventHandlers : DailyMacrosFields.EventHandlers option =
-                match this with
-                | EnabledMacrosFields (_, eventHandlers) -> Some eventHandlers
-                | _ -> None
+                /// Display select fields for daily activity
+                member this.LevelSelect : ReactElement =
+                    let eventHandlerProperties =
+                        match this.TryEventHandlers with
+                        | Some eventHandlers -> [ prop.onSelect eventHandlers.SelectActivityLevel ]
+                        | None -> []
 
-            /// Display select fields for daily activity
-            member this.LevelSelect : ReactElement =
-                let eventHandlerProperties =
-                    match this.TryEventHandlers with
-                    | Some eventHandlers -> [ prop.onSelect eventHandlers.SelectActivityLevel ]
-                    | None -> []
-
-                let selectProperties = [
-                    prop.disabled this.IsDisabled
-                    prop.className "form-select"
-                    prop.children [
-                        Html.option [
-                            prop.text ""
-                            prop.selected this.DailyActivityLevel.IsNone
-                            prop.value ""
-                        ]
-                        Html.option [
-                            prop.text (Domain.DailyActivityLevel.Sedentary.ToString())
-                            prop.selected (Some (Domain.DailyActivityLevel.Sedentary.ToString()) = this.DailyActivityLevel)
-                            prop.value (Domain.DailyActivityLevel.Sedentary.ToString())
-                        ]
-                        Html.option [
-                            prop.text (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
-                            prop.selected (Some (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString()) = this.DailyActivityLevel)
-                            prop.value (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
-                        ]
-                        Html.option [
-                            prop.text (Domain.DailyActivityLevel.``Lightly Active``.ToString())
-                            prop.selected (Some (Domain.DailyActivityLevel.``Lightly Active``.ToString()) = this.DailyActivityLevel)
-                            prop.value (Domain.DailyActivityLevel.``Lightly Active``.ToString())
-                        ]
-                        Html.option [
-                            prop.text (Domain.DailyActivityLevel.``Highly Active``.ToString())
-                            prop.selected (Some (Domain.DailyActivityLevel.``Highly Active``.ToString()) = this.DailyActivityLevel)
-                            prop.value (Domain.DailyActivityLevel.``Highly Active``.ToString())
-                        ]
-                    ]
-                ]
-
-                Html.select (eventHandlerProperties @ selectProperties)
-
-            member this.Card : ReactElement =
-                let cardCss =
-                    if this.IsEnabled then
-                        prop.classes ["card-header"; "text-bg-primary"]
-                    else
-                        prop.className "card-header"
-
-                Html.div [
-                    prop.className "card mt-3"
-
-                    prop.children [
-                        Html.div [
-                            cardCss
-                            prop.text "Daily Activity"
-                        ]
-
-                        Html.div [
-                            prop.className "card-body"
-
-                            prop.children [
-                                this.LevelSelect
+                    let selectProperties = [
+                        prop.disabled this.IsDisabled
+                        prop.className "form-select"
+                        prop.children [
+                            Html.option [
+                                prop.text ""
+                                prop.selected this.DailyActivityLevel.IsNone
+                                prop.value ""
+                            ]
+                            Html.option [
+                                prop.text (Domain.DailyActivityLevel.Sedentary.ToString())
+                                prop.selected (Some (Domain.DailyActivityLevel.Sedentary.ToString()) = this.DailyActivityLevel)
+                                prop.value (Domain.DailyActivityLevel.Sedentary.ToString())
+                            ]
+                            Html.option [
+                                prop.text (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
+                                prop.selected (Some (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString()) = this.DailyActivityLevel)
+                                prop.value (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
+                            ]
+                            Html.option [
+                                prop.text (Domain.DailyActivityLevel.``Lightly Active``.ToString())
+                                prop.selected (Some (Domain.DailyActivityLevel.``Lightly Active``.ToString()) = this.DailyActivityLevel)
+                                prop.value (Domain.DailyActivityLevel.``Lightly Active``.ToString())
+                            ]
+                            Html.option [
+                                prop.text (Domain.DailyActivityLevel.``Highly Active``.ToString())
+                                prop.selected (Some (Domain.DailyActivityLevel.``Highly Active``.ToString()) = this.DailyActivityLevel)
+                                prop.value (Domain.DailyActivityLevel.``Highly Active``.ToString())
                             ]
                         ]
                     ]
-                ]
 
-            static member CreateEnabled(form: Form.DailyMacros, eventHandlers: DailyMacrosFields.EventHandlers) : DailyMacrosFields =
-                EnabledMacrosFields (form, eventHandlers)
+                    Html.select (eventHandlerProperties @ selectProperties)
 
-            static member CreateDisabled(?form: Form.DailyMacros) : DailyMacrosFields =
-                DisabledMacrosFields form
+                member this.Card : ReactElement =
+                    let cardCss =
+                        if this.IsEnabled then
+                            prop.classes ["card-header"; "text-bg-primary"]
+                        else
+                            prop.className "card-header"
+
+                    Html.div [
+                        prop.className "card mt-3"
+
+                        prop.children [
+                            Html.div [
+                                cardCss
+                                prop.text "Daily Activity"
+                            ]
+
+                            Html.div [
+                                prop.className "card-body"
+
+                                prop.children [
+                                    this.LevelSelect
+                                ]
+                            ]
+                        ]
+                    ]
+
+                static member CreateEnabled(form: Form.DailyMacros, eventHandlers: EventHandlers) : Fields =
+                    EnabledMacrosFields (form, eventHandlers)
+
+                static member CreateDisabled(?form: Form.DailyMacros) : Fields =
+                    DisabledMacrosFields form

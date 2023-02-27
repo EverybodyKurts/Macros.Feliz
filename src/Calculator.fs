@@ -74,7 +74,7 @@ module Calculator =
                     return (fun _ -> dispatch (``Proceed to Next Step`` bodyComposition))
                 }
 
-            let bodyCompositionFields = BodyCompositionFields.CreateEnabled(
+            let bodyCompositionFields = BodyComposition.Fields.CreateEnabled(
                 form = form,
                 updateWeightAmount = (fun updatedAmount -> dispatch (``Update Weight Amount`` updatedAmount)),
                 updateBodyfatPercentage = (fun bfPct -> dispatch (``Update Bodyfat Percentage`` bfPct)),
@@ -106,9 +106,9 @@ module Calculator =
         let view(form: Form.DailyMacros, dispatch: 'a -> unit) : ReactElement =
             let eventHandlers = ({
                 SelectActivityLevel = (fun event -> dispatch (``Select Activity Level`` event.Value))
-            } : DailyMacrosFields.EventHandlers)
+            } : DailyMacros.EventHandlers)
 
-            let dailyMacrosFields = DailyMacrosFields.CreateEnabled(
+            let dailyMacrosFields = DailyMacros.Fields.CreateEnabled(
                 form = form,
                 eventHandlers = eventHandlers
             )
@@ -157,14 +157,14 @@ module Calculator =
 
                 [
                     yield! BodyComposition.view(form, bcDispatch)
-                    yield (DailyMacrosFields.CreateDisabled().Card)
+                    yield (DailyMacros.Fields.CreateDisabled().Card)
                 ]
 
             | DailyMacrosStep form ->
                 let dmDispatch = DailyMacrosMsg >> dispatch
 
                 [
-                    yield BodyCompositionFields.CreateDisabled(form = (form.BodyComposition |> Form.BodyComposition.Create)).Card
+                    yield BodyComposition.Fields.CreateDisabled(form = (form.BodyComposition |> Form.BodyComposition.Create)).Card
                     yield DailyMacros.view(form, dmDispatch)
                 ]
 
