@@ -1,7 +1,7 @@
 namespace App
 
 module Library =
-    open FSharp.Core.Fluent
+    open System
 
     [<AutoOpen>]
     module UnitsOfMeasure =
@@ -649,13 +649,21 @@ module Library =
 
                 member this.ProteinGramsPerKgLeanBodyMass : float =
                     match this with
-                    | EnabledMacrosFields (form, _) -> form.ProteinGramsPerKgLeanBodyMass
+                    | EnabledMacrosFields (form, _) ->
+                        Decimal.Round(d = (form.ProteinGramsPerKgLeanBodyMass |> decimal), decimals = 2)
+                        |> float
                     | DisabledMacrosFields form ->
+                        let defaultValue =
+                            Decimal.Round(d = (Domain.ProteinGramsPerKgLeanBodyMass.average |> decimal), decimals = 2)
+                            |> float
+
                         option {
                             let! f = form
 
-                            return f.ProteinGramsPerKgLeanBodyMass
-                        } |> Option.defaultValue (Domain.ProteinGramsPerKgLeanBodyMass.average |> float)
+                            let rounded = Decimal.Round(d = (f.ProteinGramsPerKgLeanBodyMass |> decimal), decimals = 2) |> float
+
+                            return rounded
+                        } |> Option.defaultValue defaultValue
 
                 member this.TryEventHandlers : EventHandlers option =
                     match this with
@@ -729,16 +737,26 @@ module Library =
                                 prop.text "Protein Grams Per Kg Lean Body Mass"
                             ]
 
-                            Html.input ([
-                                prop.id "protein-grams-input"
-                                prop.className "form-control"
-                                prop.type' "range"
-                                prop.min (Domain.ProteinGramsPerKgLeanBodyMass.min |> float)
-                                prop.max (Domain.ProteinGramsPerKgLeanBodyMass.max |> float)
-                                prop.step 0.1
-                                prop.value this.ProteinGramsPerKgLeanBodyMass
-                                prop.disabled this.IsDisabled
-                            ] @ eventHandlerProperties)
+                            Html.div [
+                                prop.className "input-group"
+                                prop.children [
+                                    (Html.input ([
+                                        prop.id "protein-grams-input"
+                                        prop.className "form-control"
+                                        prop.type' "range"
+                                        prop.min (Domain.ProteinGramsPerKgLeanBodyMass.min |> float)
+                                        prop.max (Domain.ProteinGramsPerKgLeanBodyMass.max |> float)
+                                        prop.step 0.05
+                                        prop.value this.ProteinGramsPerKgLeanBodyMass
+                                        prop.disabled this.IsDisabled
+                                    ] @ eventHandlerProperties))
+
+                                    Html.span [
+                                        prop.text $"{this.ProteinGramsPerKgLeanBodyMass} g / kg"
+                                        prop.className "input-group-text"
+                                    ]
+                                ]
+                            ]
                         ]
                     ]
 
