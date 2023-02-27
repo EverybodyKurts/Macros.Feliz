@@ -325,12 +325,12 @@ module Library =
 
         type DailyMacros = {
             BodyComposition: Domain.BodyComposition
-            DailyActivityLevel: Domain.DailyActivityLevel option
+            DailyActivityLevel: string
             ProteinGramsPerKgLeanBodyMass: float
         } with
             member this.Validate() : Validation<Domain.DailyMacros, string> =
                 validation {
-                    let! dal = this.DailyActivityLevel |> Utilities.Option.toResult "Daily activity level must be present"
+                    let! dal = this.DailyActivityLevel |> Domain.DailyActivityLevel.Validate
                     and! proteinGrams = this.ProteinGramsPerKgLeanBodyMass |> ProteinGramsPerKgLeanBodyMass.validate
 
                     return {
