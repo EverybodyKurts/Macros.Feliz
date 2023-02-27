@@ -131,6 +131,19 @@ module Library =
             static member Default =
                 Sedentary
 
+            static member TryCreate(input: string) : DailyActivityLevel option =
+                match input.ToLower() with
+                | "sedentary" -> Some Sedentary
+                | "mostly sedentary" -> Some ``Mostly Sedentary``
+                | "lightly active" -> Some ``Lightly Active``
+                | "highly active" -> Some ``Highly Active``
+                | _ -> None
+
+            static member Validate(input: string) : Result<DailyActivityLevel, string> =
+                input
+                |> DailyActivityLevel.TryCreate
+                |> Utilities.Option.toResult $"Invalid daily activity level: {input}"
+
         type DailyMacronutrient = {
             Grams: float<g>
             Calories: float<kcal>
