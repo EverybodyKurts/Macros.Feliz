@@ -617,7 +617,6 @@ module Library =
                 SelectActivityLevel: (Browser.Types.Event -> unit)
             }
 
-        module DailyActivityFields =
 
         type DailyMacrosFields =
             | EnabledMacrosFields of form: Form.DailyMacros * eventHandlers: DailyMacrosFields.EventHandlers
@@ -711,3 +710,9 @@ module Library =
                         ]
                     ]
                 ]
+
+            static member CreateEnabled(form: Form.DailyMacros, eventHandlers: DailyMacrosFields.EventHandlers) : DailyMacrosFields =
+                EnabledMacrosFields (form, eventHandlers)
+
+            static member CreateDisabled(?form: Form.DailyMacros) : DailyMacrosFields =
+                DisabledMacrosFields form
