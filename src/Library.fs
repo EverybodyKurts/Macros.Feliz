@@ -264,6 +264,12 @@ module Library =
                     BodyfatPercentage = None
                 }
 
+            static member Create(bodyComposition: Domain.BodyComposition) : BodyComposition =
+                {
+                    Weight = Weight.Create bodyComposition.BodyWeight
+                    BodyfatPercentage = Some <| int bodyComposition.BodyfatPercentage
+                }
+
             member private this.ValidatePercentage() : Result<uint<pct>, string> =
                 let bodyfatPercentages = [ 0 .. 100 ]
 
