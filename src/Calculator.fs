@@ -106,6 +106,7 @@ module Calculator =
         let view(form: Form.DailyMacros, dispatch: 'a -> unit) : ReactElement =
             let eventHandlers = ({
                 SelectActivityLevel = (fun event -> dispatch (``Select Activity Level`` event.Value))
+                ChangeProteinGrams = (fun grams -> dispatch (``Select Protein Grams Per Kg Lean Body Mass`` grams))
             } : DailyMacros.EventHandlers)
 
             let dailyMacrosFields = DailyMacros.Fields.CreateEnabled(

@@ -152,6 +152,12 @@ module Library =
 
         module ProteinGramsPerKgLeanBodyMass =
             let range = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
+            let average = range |> Seq.average
+            let min = range |> Seq.min
+            let max = range |> Seq.max
+
+            let isIn (proteinGrams: float<g/kg>) : bool =
+                min <= proteinGrams && proteinGrams <= max
 
         type DailyMacros = {
             BodyComposition: BodyComposition
@@ -315,13 +321,13 @@ module Library =
             let validate (proteinGrams: float) : Result<float<g/kg>,string> =
                 let p = proteinGrams * 1.0<g/kg>
 
-                let rangeMin = Domain.ProteinGramsPerKgLeanBodyMass.range |> Seq.min
                 let rangeMax = Domain.ProteinGramsPerKgLeanBodyMass.range |> Seq.max
 
-                if rangeMin <= p && p <= rangeMax then
+                if Domain.ProteinGramsPerKgLeanBodyMass.isIn p then
                     Ok p
                 else
-                    Error $"Protein grams must be between {rangeMin} && {rangeMax}"
+                    Error $"Protein grams must be between {Domain.ProteinGramsPerKgLeanBodyMass.min} && {Domain.ProteinGramsPerKgLeanBodyMass.max}"
+
 
         type DailyMacros = {
             BodyComposition: Domain.BodyComposition
@@ -342,7 +348,7 @@ module Library =
 
             static member Create(bodyComposition: Domain.BodyComposition, ?dailyActivityLevel: string, ?proteinGramsPerKgLeanBodyMass: float) : DailyMacros =
                 let dailyActivityLevel = defaultArg dailyActivityLevel ""
-                let averageProteinGrams = Domain.ProteinGramsPerKgLeanBodyMass.range |> Seq.average |> float
+                let averageProteinGrams = Domain.ProteinGramsPerKgLeanBodyMass.average |> float
                 let proteinGrams = defaultArg proteinGramsPerKgLeanBodyMass averageProteinGrams
 
                 {
@@ -617,6 +623,7 @@ module Library =
         module DailyMacros =
             type EventHandlers = {
                 SelectActivityLevel: (Browser.Types.Event -> unit)
+                ChangeProteinGrams: (float -> unit)
             }
 
             type Fields =
@@ -640,6 +647,16 @@ module Library =
                             return! dailyMacros.DailyActivityLevel
                         }
 
+                member this.ProteinGramsPerKgLeanBodyMass : float =
+                    match this with
+                    | EnabledMacrosFields (form, _) -> form.ProteinGramsPerKgLeanBodyMass
+                    | DisabledMacrosFields form ->
+                        option {
+                            let! f = form
+
+                            return f.ProteinGramsPerKgLeanBodyMass
+                        } |> Option.defaultValue (Domain.ProteinGramsPerKgLeanBodyMass.average |> float)
+
                 member this.TryEventHandlers : EventHandlers option =
                     match this with
                     | EnabledMacrosFields (_, eventHandlers) -> Some eventHandlers
@@ -655,6 +672,7 @@ module Library =
                     let selectProperties = [
                         prop.disabled this.IsDisabled
                         prop.className "form-select"
+                        prop.id "daily-activity-select"
                         prop.children [
                             Html.option [
                                 prop.text ""
@@ -684,7 +702,45 @@ module Library =
                         ]
                     ]
 
-                    Html.select (eventHandlerProperties @ selectProperties)
+                    Html.div [
+                        prop.className "mb-3"
+                        prop.children [
+                            Html.label [
+                                prop.for' "daily-activity-select"
+                                prop.className "form-label"
+                                prop.text "Daily Activity Level"
+                            ]
+                            Html.select (eventHandlerProperties @ selectProperties)
+                        ]
+                    ]
+
+                member this.ProteinGramsInput =
+                    let eventHandlerProperties =
+                        match this.TryEventHandlers with
+                        | Some eventHandlers -> [ prop.onChange eventHandlers.ChangeProteinGrams ]
+                        | None -> []
+
+                    Html.div [
+                        prop.className "mb-3"
+                        prop.children [
+                            Html.label [
+                                prop.for' "protein-grams-input"
+                                prop.className "form-label"
+                                prop.text "Protein Grams Per Kg Lean Body Mass"
+                            ]
+
+                            Html.input ([
+                                prop.id "protein-grams-input"
+                                prop.className "form-control"
+                                prop.type' "range"
+                                prop.min (Domain.ProteinGramsPerKgLeanBodyMass.min |> float)
+                                prop.max (Domain.ProteinGramsPerKgLeanBodyMass.max |> float)
+                                prop.step 0.1
+                                prop.value this.ProteinGramsPerKgLeanBodyMass
+                                prop.disabled this.IsDisabled
+                            ] @ eventHandlerProperties)
+                        ]
+                    ]
 
                 member this.Card : ReactElement =
                     let cardCss =
@@ -699,7 +755,7 @@ module Library =
                         prop.children [
                             Html.div [
                                 cardCss
-                                prop.text "Daily Activity"
+                                prop.text "Daily Macros"
                             ]
 
                             Html.div [
@@ -707,6 +763,7 @@ module Library =
 
                                 prop.children [
                                     this.LevelSelect
+                                    this.ProteinGramsInput
                                 ]
                             ]
                         ]
