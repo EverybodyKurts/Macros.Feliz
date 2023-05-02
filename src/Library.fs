@@ -93,9 +93,8 @@ module Library =
                 this.BodyWeight - this.FatMass
 
             member this.BasalMetabolicRate : float<kcal> =
-                match this.LeanMuscleMass.ToKg() with
-                | Kg kg -> basalMetabolicRate kg
-                | _ -> invalidOp "Domain.BodyComposition.BasalMetabolicRate threw an exception"
+                this.LeanMuscleMass.KgMeasure
+                |> basalMetabolicRate
 
             /// Compute body composition at a certain bodyfat % with the current lean muscle mass
             member this.AtBodyFatPercentage(bodyFatPercentage: uint<pct>) : BodyComposition =
@@ -317,8 +316,6 @@ module Library =
         module ProteinGramsPerKgLeanBodyMass =
             let validate (proteinGrams: float) : Result<float<g/kg>,string> =
                 let p = proteinGrams * 1.0<g/kg>
-
-                let rangeMax = Domain.ProteinGramsPerKgLeanBodyMass.range |> Seq.max
 
                 if Domain.ProteinGramsPerKgLeanBodyMass.isIn p then
                     Ok p
