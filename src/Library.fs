@@ -22,11 +22,15 @@ module Library =
         [<Literal>]
         let FatCaloriesPerGram : float<kcal/g> = 9.0<kcal/g>
 
+    /// This module contains the app's business logic. It is at the core of the onion architecture.
+    /// Once data has reached this module, it is in a valid state. This module doesn't contain logic
+    /// for retrieving data, parsing data, or validating data.
     module Domain =
         type Mass =
             | Lb of lb : float<lb>
             | Kg of kg : float<kg>
 
+            /// Subtract one mass from another
             static member (-) (mass1: Mass, mass2: Mass) : Mass =
                 match mass1, mass2 with
                 | Lb lb1, Lb lb2 -> Lb <| lb1 - lb2
@@ -34,24 +38,29 @@ module Library =
                 | Kg kg1, Kg kg2 -> Kg <| kg1 - kg2
                 | Kg kg, Lb lb -> Kg <| kg - (lb * kgPerLb)
 
+            /// Add two masses together
             static member (*)(mass: Mass, num: float) : Mass =
                 match mass with
                 | Lb lb -> Lb <| lb * num
                 | Kg kg -> Kg <| kg * num
 
+            /// Convert the mass to pounds
             member this.ToLb() : Mass =
                 match this with
                 | Kg kg -> Lb <| kg * lbPerKg
                 | _ -> this
 
+            /// Convert the mass to kilograms
             member this.ToKg() : Mass =
                 match this with
                 | Lb lb -> Kg <| lb * kgPerLb
                 | _ -> this
 
+            /// Create a mass whose value is in pounds
             static member CreateLb(amount: float) : Mass =
                 Lb <| amount * 1.0<lb>
 
+            /// Create a mass whose value is in kilograms
             static member CreateKg(amount: float) : Mass =
                 Kg <| amount * 1.0<kg>
 
@@ -100,7 +109,7 @@ module Library =
                     BodyfatPercentage = bodyFatPercentage
                 }
 
-            /// Project body composition at lower and lower bodyfat %s
+            /// Project body composition at current bf % down to 6% bf
             member this.Projections : BodyComposition seq =
                 seq { 6u<pct> .. 2u<pct> .. this.BodyfatPercentage}
                 |> Seq.sortDescending
