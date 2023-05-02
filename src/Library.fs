@@ -131,19 +131,6 @@ module Library =
             static member Default =
                 Sedentary
 
-            static member TryCreate(input: string) : DailyActivityLevel option =
-                match input.ToLower() with
-                | "sedentary" -> Some Sedentary
-                | "mostly sedentary" -> Some ``Mostly Sedentary``
-                | "lightly active" -> Some ``Lightly Active``
-                | "highly active" -> Some ``Highly Active``
-                | _ -> None
-
-            static member Validate(input: string) : Result<DailyActivityLevel, string> =
-                input
-                |> DailyActivityLevel.TryCreate
-                |> Utilities.Option.toResult $"Invalid daily activity level: {input}"
-
         type DailyMacronutrient = {
             Grams: float<g>
             Calories: float<kcal>
@@ -205,6 +192,7 @@ module Library =
 
     module Form =
         open FsToolkit.ErrorHandling
+        open Domain
 
         type WeightUnit =
             | Kg
@@ -328,6 +316,19 @@ module Library =
                 else
                     Error $"Protein grams must be between {Domain.ProteinGramsPerKgLeanBodyMass.min} && {Domain.ProteinGramsPerKgLeanBodyMass.max}"
 
+        module DailyActivityLevel =
+            let tryCreate (input: string) : Domain.DailyActivityLevel option =
+                match input with
+                | "sedentary" -> Some Sedentary
+                | "moderate" -> Some ``Mostly Sedentary``
+                | "very" -> Some ``Lightly Active``
+                | "extra" -> Some ``Highly Active``
+                | _ -> None
+
+            let validate (input: string) : Result<Domain.DailyActivityLevel, string> =
+                match input |> tryCreate with
+                | Some dal -> Ok dal
+                | None -> Error $"Invalid daily activity level: {input}"
 
         type DailyMacros = {
             BodyComposition: Domain.BodyComposition
@@ -336,7 +337,7 @@ module Library =
         } with
             member this.Validate() : Validation<Domain.DailyMacros, string> =
                 validation {
-                    let! dal = this.DailyActivityLevel |> Domain.DailyActivityLevel.Validate
+                    let! dal = this.DailyActivityLevel |> DailyActivityLevel.validate
                     and! proteinGrams = this.ProteinGramsPerKgLeanBodyMass |> ProteinGramsPerKgLeanBodyMass.validate
 
                     return {
