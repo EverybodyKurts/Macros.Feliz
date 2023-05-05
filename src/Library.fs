@@ -222,12 +222,12 @@ module Library =
         } with
             static member Create(weight: Domain.Mass) : Weight =
                 match weight with
-                | Domain.Mass.Kg kg ->
+                | Mass.Kg kg ->
                     {
                         Amount = Some <| float kg
                         Unit = Kg
                     }
-                | Domain.Mass.Lb lb ->
+                | Mass.Lb lb ->
                     {
                         Amount = Some <| float lb
                         Unit = Lb
@@ -241,8 +241,8 @@ module Library =
 
             member this.Validate() : Result<Domain.Mass, string> =
                 match this.Amount, this.Unit with
-                | Some amount, Lb when amount >= 0 -> Ok <| Domain.Mass.CreateLb amount
-                | Some amount, Kg when amount >= 0 -> Ok <| Domain.Mass.CreateKg amount
+                | Some amount, Lb when amount >= 0 -> Ok <| Mass.CreateLb amount
+                | Some amount, Kg when amount >= 0 -> Ok <| Mass.CreateKg amount
                 | Some _, _ -> Error "Weight amount must be >= 0"
                 | None, _ -> Error "Weight amount must be present"
 
