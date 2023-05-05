@@ -217,6 +217,7 @@ module Library =
                 | Lb -> true
                 | _ -> false
 
+        /// Body weight input
         type Weight = {
             Amount: float option
             Unit: WeightUnit
@@ -240,6 +241,7 @@ module Library =
                     Unit = Lb
                 }
 
+            /// Validate body weight input. Amount must be a parseable float that is >= 0
             member this.Validate() : Result<Domain.Mass, string> =
                 match this.Amount, this.Unit with
                 | Some amount, Lb when amount >= 0 -> Ok <| Mass.CreateLb amount
@@ -247,11 +249,13 @@ module Library =
                 | Some _, _ -> Error "Weight amount must be >= 0"
                 | None, _ -> Error "Weight amount must be present"
 
+            /// Convert body weight to kg
             member this.ToKg() : Weight =
                 match this.Validate() with
                 | Ok weight -> weight.ToKg() |> Weight.Create
                 | Error _ -> { this with Unit = Kg }
 
+            /// Convert bodyweight to lb
             member this.ToLb() : Weight =
                 match this.Validate() with
                 | Ok weight -> weight.ToLb() |> Weight.Create
@@ -383,10 +387,10 @@ module Library =
                 | Disabled
 
             type Fields = {
-                Form: Input.BodyComposition
+                BodyComposition: Input.BodyComposition
                 Status: Status
             } with
-                static member CreateEnabled(form: Input.BodyComposition,
+                static member CreateEnabled(bodyComposition: Input.BodyComposition,
                                             updateWeightAmount: float -> unit,
                                             updateBodyfatPercentage: int -> unit,
                                             selectKgUnit: Browser.Types.MouseEvent -> unit,
@@ -404,13 +408,13 @@ module Library =
                         }
 
                     {
-                        Form = form
+                        BodyComposition = bodyComposition
                         Status = enabledStatus
                     }
 
-                static member CreateDisabled(form: Input.BodyComposition) : Fields =
+                static member CreateDisabled(bodyComposition: Input.BodyComposition) : Fields =
                     {
-                        Form = form
+                        BodyComposition = bodyComposition
                         Status = Disabled
                     }
 
@@ -429,13 +433,7 @@ module Library =
                     | Enabled eventHandlers -> Some eventHandlers
                     | _ -> None
 
-                member this.Label : ReactElement =
-                    Html.label [
-                        prop.for' this.InputHtmlId
-                        prop.className "form-label"
-                        prop.text "Body Weight"
-                    ]
-
+                /// Display the html input for body weight amount
                 member this.WeightAmountInput : ReactElement =
                     let changeProperty =
                         match this.TryEventHandlers with
@@ -452,7 +450,7 @@ module Library =
                     ]
 
                     let valueProperty =
-                        match this.Form.Weight.Amount with
+                        match this.BodyComposition.Weight.Amount with
                         | Some amount -> [ prop.value amount ]
                         | _ -> []
 
@@ -460,6 +458,7 @@ module Library =
 
                 member private _.WeightUnitOptions = "weightUnitOptions"
 
+                /// Display form field for body weight kg unit
                 member this.WeightKgOption : ReactElement list =
                     let optionName = "kgUnitOption"
 
@@ -474,10 +473,9 @@ module Library =
                             prop.className "btn-check"
                             prop.name this.WeightUnitOptions
                             prop.id optionName
-                            prop.isChecked this.Form.Weight.Unit.IsKilogram
+                            prop.isChecked this.BodyComposition.Weight.Unit.IsKilogram
                             prop.disabled (not this.IsEnabled)
                         ]
-
 
                     [
                         Html.input (inputProperties @ changeProperty)
@@ -488,6 +486,7 @@ module Library =
                         ]
                     ]
 
+                /// Display form field for body weight lb unit
                 member this.WeightLbOption : ReactElement list =
                     let optionName = "lbUnitOption"
 
@@ -502,7 +501,7 @@ module Library =
                             prop.className "btn-check"
                             prop.name this.WeightUnitOptions
                             prop.id optionName
-                            prop.isChecked this.Form.Weight.Unit.IsPound
+                            prop.isChecked this.BodyComposition.Weight.Unit.IsPound
                             prop.disabled (not this.IsEnabled)
                         ]
 
@@ -515,7 +514,15 @@ module Library =
                         ]
                     ]
 
+                /// Display form fields for body weight
                 member this.BodyWeightFields : ReactElement =
+                    let bodyWeightLabel =
+                        Html.label [
+                            prop.for' this.InputHtmlId
+                            prop.className "form-label"
+                            prop.text "Body Weight"
+                        ]
+
                     let inputHtmls =
                         [ this.WeightAmountInput ]
                         @ this.WeightLbOption
@@ -524,7 +531,7 @@ module Library =
                     Html.div [
                         prop.className "mb-3"
                         prop.children [
-                            this.Label
+                            bodyWeightLabel
 
                             Html.div [
                                 prop.className "input-group"
@@ -533,6 +540,7 @@ module Library =
                         ]
                     ]
 
+                /// Display form field for bodyfat %
                 member this.BodyfatPercentage : ReactElement =
                     let changeProperty =
                         match this.TryEventHandlers with
@@ -635,8 +643,8 @@ module Library =
             }
 
             type Fields =
-                | EnabledMacrosFields of form: Input.DailyMacros * eventHandlers: EventHandlers
-                | DisabledMacrosFields of form: Input.DailyMacros option
+                | EnabledMacrosFields of input: Input.DailyMacros * eventHandlers: EventHandlers
+                | DisabledMacrosFields of input: Input.DailyMacros option
 
                 member this.IsEnabled : bool =
                     match this with
@@ -646,27 +654,28 @@ module Library =
                 member this.IsDisabled : bool =
                     not this.IsEnabled
 
+                /// Retrieve the inputted daily activity level, if it exists
                 member this.DailyActivityLevel : string option =
                     match this with
-                    | EnabledMacrosFields (form, _) -> Some form.DailyActivityLevel
-                    | DisabledMacrosFields form ->
+                    | EnabledMacrosFields (input, _) -> Some input.DailyActivityLevel
+                    | DisabledMacrosFields input ->
                         option {
-                            let! dailyMacros = form
+                            let! dailyMacros = input
                             return! dailyMacros.DailyActivityLevel
                         }
 
                 member this.ProteinGramsPerKgLeanBodyMass : float =
                     match this with
-                    | EnabledMacrosFields (form, _) ->
-                        Decimal.Round(d = (form.ProteinGramsPerKgLeanBodyMass |> decimal), decimals = 2)
+                    | EnabledMacrosFields (input, _) ->
+                        Decimal.Round(d = (input.ProteinGramsPerKgLeanBodyMass |> decimal), decimals = 2)
                         |> float
-                    | DisabledMacrosFields form ->
+                    | DisabledMacrosFields input ->
                         let defaultValue =
                             Decimal.Round(d = (Domain.ProteinGramsPerKgLeanBodyMass.average |> decimal), decimals = 2)
                             |> float
 
                         option {
-                            let! f = form
+                            let! f = input
 
                             let rounded = Decimal.Round(d = (f.ProteinGramsPerKgLeanBodyMass |> decimal), decimals = 2) |> float
 
@@ -678,38 +687,43 @@ module Library =
                     | EnabledMacrosFields (_, eventHandlers) -> Some eventHandlers
                     | _ -> None
 
-                /// Display select fields for daily activity
-                member this.LevelSelect : ReactElement =
+                /// Display daily activility level dropdown
+                member this.DailyActivityLevelDropdown : ReactElement =
                     let eventHandlerProperties =
                         match this.TryEventHandlers with
                         | Some eventHandlers -> [ prop.onSelect eventHandlers.SelectActivityLevel ]
                         | None -> []
 
-                    let selectProperties = [
+                    let dropdownProperties = [
                         prop.disabled this.IsDisabled
                         prop.className "form-select"
                         prop.id "daily-activity-select"
                         prop.children [
+                            // blank option
                             Html.option [
                                 prop.text ""
                                 prop.selected this.DailyActivityLevel.IsNone
                                 prop.value ""
                             ]
+                            // sedentary option
                             Html.option [
                                 prop.text (Domain.DailyActivityLevel.Sedentary.ToString())
                                 prop.selected (Some (Domain.DailyActivityLevel.Sedentary.ToString()) = this.DailyActivityLevel)
                                 prop.value (Domain.DailyActivityLevel.Sedentary.ToString())
                             ]
+                            // 'mostly sedentary' option
                             Html.option [
                                 prop.text (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
                                 prop.selected (Some (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString()) = this.DailyActivityLevel)
                                 prop.value (Domain.DailyActivityLevel.``Mostly Sedentary``.ToString())
                             ]
+                            // 'lightly active' option
                             Html.option [
                                 prop.text (Domain.DailyActivityLevel.``Lightly Active``.ToString())
                                 prop.selected (Some (Domain.DailyActivityLevel.``Lightly Active``.ToString()) = this.DailyActivityLevel)
                                 prop.value (Domain.DailyActivityLevel.``Lightly Active``.ToString())
                             ]
+                            // 'highly active' option
                             Html.option [
                                 prop.text (Domain.DailyActivityLevel.``Highly Active``.ToString())
                                 prop.selected (Some (Domain.DailyActivityLevel.``Highly Active``.ToString()) = this.DailyActivityLevel)
@@ -722,15 +736,15 @@ module Library =
                         prop.className "mb-3"
                         prop.children [
                             Html.label [
-                                prop.for' "daily-activity-select"
+                                prop.for' "daily-activity-level-dropdown"
                                 prop.className "form-label"
                                 prop.text "Daily Activity Level"
                             ]
-                            Html.select (eventHandlerProperties @ selectProperties)
+                            Html.select (eventHandlerProperties @ dropdownProperties)
                         ]
                     ]
 
-                member this.ProteinGramsInput =
+                member this.ProteinGramsInput : ReactElement =
                     let eventHandlerProperties =
                         match this.TryEventHandlers with
                         | Some eventHandlers -> [ prop.onChange eventHandlers.ChangeProteinGrams ]
@@ -788,7 +802,7 @@ module Library =
                                 prop.className "card-body"
 
                                 prop.children [
-                                    this.LevelSelect
+                                    this.DailyActivityLevelDropdown
                                     this.ProteinGramsInput
                                 ]
                             ]
