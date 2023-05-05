@@ -56,13 +56,13 @@ module Calculator =
                 ]
             ]
 
-        let view(form: Input.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
+        let view(input: Input.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
             let bcHtml =
-                match form.Validate() with
+                match input.Validate() with
                 | Ok bc ->
                     bodyCompositionHtml bc
                 | Error _ ->
-                    console.log form
+                    console.log input
 
                     Html.div [
                         prop.text "Body composition not valid"
@@ -70,12 +70,12 @@ module Calculator =
 
             let nextStepHandler =
                 option {
-                    let! bodyComposition = form.Validate() |> Utilities.Result.toOption
+                    let! bodyComposition = input.Validate() |> Utilities.Result.toOption
                     return (fun _ -> dispatch (``Proceed to Next Step`` bodyComposition))
                 }
 
             let bodyCompositionFields = BodyComposition.Fields.CreateEnabled(
-                form = form,
+                bodyComposition = input,
                 updateWeightAmount = (fun updatedAmount -> dispatch (``Update Weight Amount`` updatedAmount)),
                 updateBodyfatPercentage = (fun bfPct -> dispatch (``Update Bodyfat Percentage`` bfPct)),
                 selectKgUnit = (fun _ -> dispatch ``Convert Amount To Kg``),
@@ -151,7 +151,7 @@ module Calculator =
     let View() : ReactElement =
         let form, dispatch = React.useElmish(init, update, [| |])
 
-        let htmlElements =
+        let inputs =
             match form with
             | BodyCompositionStep form ->
                 let bcDispatch = BodyCompositionMsg >> dispatch
@@ -165,12 +165,15 @@ module Calculator =
                 let dmDispatch = DailyMacrosMsg >> dispatch
 
                 [
-                    yield BodyComposition.Fields.CreateDisabled(form = (form.BodyComposition |> Input.BodyComposition.Create)).Card
+                    yield BodyComposition.Fields.CreateDisabled(bodyComposition = (form.BodyComposition |> Input.BodyComposition.Create)).Card
                     yield DailyMacros.view(form, dmDispatch)
                 ]
 
+        let outputs = []
+
         fluidContainer [
             row [
-                col htmlElements
+                ``col-4`` inputs
+                col []
             ]
         ]
