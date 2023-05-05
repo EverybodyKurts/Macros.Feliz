@@ -25,6 +25,7 @@ module Library =
     /// This module contains the app's business logic. It is at the core of the onion architecture.
     /// Once data has reached this module, it is in a valid state. This module doesn't contain logic
     /// for retrieving data, parsing data, or validating data.
+    [<AutoOpen>]
     module Domain =
         type Mass =
             | Lb of lb : float<lb>
@@ -114,7 +115,6 @@ module Library =
                 |> Seq.sortDescending
                 |> Seq.map this.AtBodyFatPercentage
                 |> Seq.skipWhile (fun bodyComposition -> bodyComposition = this)
-
 
         type DailyActivityLevel =
             | Sedentary
