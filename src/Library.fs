@@ -809,8 +809,8 @@ module Library =
                         ]
                     ]
 
-                static member CreateEnabled(form: Input.DailyMacros, eventHandlers: EventHandlers) : Fields =
-                    EnabledMacrosFields (form, eventHandlers)
+                static member CreateEnabled(input: Input.DailyMacros, eventHandlers: EventHandlers) : Fields =
+                    EnabledMacrosFields (input, eventHandlers)
 
-                static member CreateDisabled(?form: Input.DailyMacros) : Fields =
-                    DisabledMacrosFields form
+                static member CreateDisabled(?input: Input.DailyMacros) : Fields =
+                    DisabledMacrosFields input

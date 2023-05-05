@@ -46,28 +46,7 @@ module Calculator =
             | ``Proceed to Next Step`` _ ->
                 invalidOp "Message shouldn't reach here"
 
-        let bodyCompositionHtml (bodyComposition: Domain.BodyComposition) : ReactElement =
-            Html.div [
-                Html.div [
-                    prop.text "Lean Muscle Mass:"
-                ]
-                Html.div [
-                    prop.text bodyComposition.LeanMuscleMass.Text
-                ]
-            ]
-
         let view(input: Input.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
-            let bcHtml =
-                match input.Validate() with
-                | Ok bc ->
-                    bodyCompositionHtml bc
-                | Error _ ->
-                    console.log input
-
-                    Html.div [
-                        prop.text "Body composition not valid"
-                    ]
-
             let nextStepHandler =
                 option {
                     let! bodyComposition = input.Validate() |> Utilities.Result.toOption
@@ -85,7 +64,6 @@ module Calculator =
 
             [
                 bodyCompositionFields.Card
-                bcHtml
             ]
 
     module DailyMacros =
@@ -103,14 +81,14 @@ module Calculator =
             | ``Select Protein Grams Per Kg Lean Body Mass`` proteinGrams ->
                 { form with ProteinGramsPerKgLeanBodyMass = proteinGrams }, Cmd.none
 
-        let view(form: Input.DailyMacros, dispatch: 'a -> unit) : ReactElement =
+        let view(input: Input.DailyMacros, dispatch: 'a -> unit) : ReactElement =
             let eventHandlers = ({
                 SelectActivityLevel = (fun event -> dispatch (``Select Activity Level`` event.Value))
                 ChangeProteinGrams = (fun grams -> dispatch (``Select Protein Grams Per Kg Lean Body Mass`` grams))
             } : DailyMacros.EventHandlers)
 
             let dailyMacrosFields = DailyMacros.Fields.CreateEnabled(
-                form = form,
+                form = input,
                 eventHandlers = eventHandlers
             )
 
@@ -153,20 +131,20 @@ module Calculator =
 
         let inputs =
             match form with
-            | BodyCompositionStep form ->
+            | BodyCompositionStep bodyComposition ->
                 let bcDispatch = BodyCompositionMsg >> dispatch
 
                 [
-                    yield! BodyComposition.view(form, bcDispatch)
-                    yield (DailyMacros.Fields.CreateDisabled().Card)
+                    yield! BodyComposition.view(bodyComposition, bcDispatch)
+                    DailyMacros.Fields.CreateDisabled().Card
                 ]
 
-            | DailyMacrosStep form ->
+            | DailyMacrosStep dailyMacros ->
                 let dmDispatch = DailyMacrosMsg >> dispatch
 
                 [
-                    yield BodyComposition.Fields.CreateDisabled(bodyComposition = (form.BodyComposition |> Input.BodyComposition.Create)).Card
-                    yield DailyMacros.view(form, dmDispatch)
+                    BodyComposition.Fields.CreateDisabled(bodyComposition = (dailyMacros.BodyComposition |> Input.BodyComposition.Create)).Card
+                    DailyMacros.view(dailyMacros, dmDispatch)
                 ]
 
         let outputs = []
