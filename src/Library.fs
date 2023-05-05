@@ -198,7 +198,8 @@ module Library =
                     Percentage = percentage
                 }
 
-    module Form =
+    /// Handles user input that is not yet validated
+    module Input =
         open FsToolkit.ErrorHandling
         open Domain
 
