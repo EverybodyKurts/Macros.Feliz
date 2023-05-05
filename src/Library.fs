@@ -382,10 +382,10 @@ module Library =
                 | Disabled
 
             type Fields = {
-                Form: Form.BodyComposition
+                Form: Input.BodyComposition
                 Status: Status
             } with
-                static member CreateEnabled(form: Form.BodyComposition,
+                static member CreateEnabled(form: Input.BodyComposition,
                                             updateWeightAmount: float -> unit,
                                             updateBodyfatPercentage: int -> unit,
                                             selectKgUnit: Browser.Types.MouseEvent -> unit,
@@ -407,7 +407,7 @@ module Library =
                         Status = enabledStatus
                     }
 
-                static member CreateDisabled(form: Form.BodyComposition) : Fields =
+                static member CreateDisabled(form: Input.BodyComposition) : Fields =
                     {
                         Form = form
                         Status = Disabled
@@ -634,8 +634,8 @@ module Library =
             }
 
             type Fields =
-                | EnabledMacrosFields of form: Form.DailyMacros * eventHandlers: EventHandlers
-                | DisabledMacrosFields of form: Form.DailyMacros option
+                | EnabledMacrosFields of form: Input.DailyMacros * eventHandlers: EventHandlers
+                | DisabledMacrosFields of form: Input.DailyMacros option
 
                 member this.IsEnabled : bool =
                     match this with
@@ -794,8 +794,8 @@ module Library =
                         ]
                     ]
 
-                static member CreateEnabled(form: Form.DailyMacros, eventHandlers: EventHandlers) : Fields =
+                static member CreateEnabled(form: Input.DailyMacros, eventHandlers: EventHandlers) : Fields =
                     EnabledMacrosFields (form, eventHandlers)
 
-                static member CreateDisabled(?form: Form.DailyMacros) : Fields =
+                static member CreateDisabled(?form: Input.DailyMacros) : Fields =
                     DisabledMacrosFields form

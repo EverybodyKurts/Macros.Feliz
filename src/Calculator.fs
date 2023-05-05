@@ -11,7 +11,7 @@ open FsToolkit.ErrorHandling
 
 open Bootstrap
 open Library
-open Library.Form
+open Library.Input
 
 module Calculator =
     open Html
@@ -29,7 +29,7 @@ module Calculator =
             | ``Proceed to Next Step`` of Domain.BodyComposition
 
         /// Updates the body composition form based on a user action
-        let update (msg: Msg) (form: Form.BodyComposition) : Form.BodyComposition * Cmd<'a> =
+        let update (msg: Msg) (form: Input.BodyComposition) : Input.BodyComposition * Cmd<'a> =
             match msg with
             | ``Update Weight Amount`` amount ->
                 form.UpdateWeightAmount(amount), Cmd.none
@@ -56,7 +56,7 @@ module Calculator =
                 ]
             ]
 
-        let view(form: Form.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
+        let view(form: Input.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
             let bcHtml =
                 match form.Validate() with
                 | Ok bc ->
@@ -95,7 +95,7 @@ module Calculator =
             | ``Select Protein Grams Per Kg Lean Body Mass`` of grams: float
 
         /// Updates the daily activity form
-        let update (msg: Msg) (form:  Form.DailyMacros) : Form.DailyMacros * Cmd<'a> =
+        let update (msg: Msg) (form:  Input.DailyMacros) : Input.DailyMacros * Cmd<'a> =
             match msg with
             | ``Select Activity Level`` dailyActivityLevel ->
                 { form with DailyActivityLevel = dailyActivityLevel }, Cmd.none
@@ -103,7 +103,7 @@ module Calculator =
             | ``Select Protein Grams Per Kg Lean Body Mass`` proteinGrams ->
                 { form with ProteinGramsPerKgLeanBodyMass = proteinGrams }, Cmd.none
 
-        let view(form: Form.DailyMacros, dispatch: 'a -> unit) : ReactElement =
+        let view(form: Input.DailyMacros, dispatch: 'a -> unit) : ReactElement =
             let eventHandlers = ({
                 SelectActivityLevel = (fun event -> dispatch (``Select Activity Level`` event.Value))
                 ChangeProteinGrams = (fun grams -> dispatch (``Select Protein Grams Per Kg Lean Body Mass`` grams))
@@ -121,8 +121,8 @@ module Calculator =
         | DailyMacrosMsg of DailyMacros.Msg
 
     type State =
-        | BodyCompositionStep of form: Form.BodyComposition
-        | DailyMacrosStep of form: Form.DailyMacros
+        | BodyCompositionStep of form: Input.BodyComposition
+        | DailyMacrosStep of form: Input.DailyMacros
 
     let init() = BodyCompositionStep BodyComposition.Default, Cmd.none
 
@@ -130,7 +130,7 @@ module Calculator =
         match msg, state with
         // proceed from body composition form to daily activity form
         | BodyCompositionMsg (BodyComposition.``Proceed to Next Step`` bodyComposition), _ ->
-            let dailyMacrosForm = Form.DailyMacros.Create(bodyComposition)
+            let dailyMacrosForm = Input.DailyMacros.Create(bodyComposition)
             DailyMacrosStep dailyMacrosForm, Cmd.none
 
         | BodyCompositionMsg msg, BodyCompositionStep bodyCompositionForm ->
@@ -165,7 +165,7 @@ module Calculator =
                 let dmDispatch = DailyMacrosMsg >> dispatch
 
                 [
-                    yield BodyComposition.Fields.CreateDisabled(form = (form.BodyComposition |> Form.BodyComposition.Create)).Card
+                    yield BodyComposition.Fields.CreateDisabled(form = (form.BodyComposition |> Input.BodyComposition.Create)).Card
                     yield DailyMacros.view(form, dmDispatch)
                 ]
 
