@@ -1,0 +1,34 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"fsharp","items":[{"aliases":[],"languageName":"fsharp","name":"fsharp"}]}}
+
+#!fsharp
+
+#r "./src/bin/Debug/net7.0/App.dll"
+
+open App.Library
+
+#!fsharp
+
+let bodyweight = Mass.CreateLb(224.0)
+
+bodyweight
+
+#!fsharp
+
+let bodyComposition = {
+  BodyWeight = bodyweight
+  BodyfatPercentage = 24u<pct>
+}
+
+bodyComposition
+
+#!fsharp
+
+let dailyMacros = {
+  BodyComposition = bodyComposition
+  DailyActivityLevel = ``Mostly Sedentary``
+  ProteinGramsPerKgLeanBodyMass = ProteinGramsPerKgLeanBodyMass.average
+}
+
+dailyMacros
