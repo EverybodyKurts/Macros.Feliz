@@ -21,3 +21,9 @@ module Bootstrap =
             prop.className "col"
             prop.children children
         ]
+
+    let ``col-4`` (children: ReactElement seq) : ReactElement =
+        Html.div [
+            prop.className "col-4"
+            prop.children children
+        ]

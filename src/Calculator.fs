@@ -88,7 +88,7 @@ module Calculator =
             } : DailyMacros.EventHandlers)
 
             let dailyMacrosFields = DailyMacros.Fields.CreateEnabled(
-                form = input,
+                input = input,
                 eventHandlers = eventHandlers
             )
 
