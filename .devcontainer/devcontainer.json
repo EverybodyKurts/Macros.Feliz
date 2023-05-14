@@ -16,7 +16,9 @@
                 "ms-dotnettools.csharp",
                 "ms-azuretools.vscode-docker",
                 "jeremyrajan.webpack",
-                "shardulm94.trailing-spaces"
+                "shardulm94.trailing-spaces",
+                "GitHub.copilot-nightly",
+                "GitHub.copilot-labs"
             ]
         }
     },
