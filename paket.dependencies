@@ -1,9 +1,9 @@
 source https://api.nuget.org/v3/index.json
 
-nuget Feliz.UseElmish
-nuget FSharp.Core
+nuget Feliz.UseElmish ~> 2.4
+nuget FSharp.Core ~> 7.0
 nuget Fable.DateFunctions ~> 3.9
 nuget Fable.Mocha ~> 2.16
 nuget Feliz ~> 2.4
 nuget Feliz.Router ~> 4.0
-nuget FsToolkit.ErrorHandling
+nuget FsToolkit.ErrorHandling ~> 4.6
