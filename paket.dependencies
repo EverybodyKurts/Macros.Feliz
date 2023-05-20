@@ -1,5 +1,6 @@
 source https://api.nuget.org/v3/index.json
 
+nuget Feliz.Recharts ~> 4.1
 nuget Feliz.UseElmish ~> 2.4
 nuget FSharp.Core ~> 7.0
 nuget Fable.DateFunctions ~> 3.9
