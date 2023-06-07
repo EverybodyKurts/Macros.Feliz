@@ -73,7 +73,7 @@ module Calculator =
             | ``Select Protein Grams Per Kg Lean Body Mass`` of grams: float
 
         /// Updates the daily activity form
-        let update (msg: Msg) (form:  Input.DailyMacros) : Input.DailyMacros * Cmd<'a> =
+        let update (msg: Msg) (form: Input.DailyMacros) : Input.DailyMacros * Cmd<'a> =
             match msg with
             | ``Select Activity Level`` dailyActivityLevel ->
                 { form with DailyActivityLevel = dailyActivityLevel }, Cmd.none
@@ -82,10 +82,10 @@ module Calculator =
                 { form with ProteinGramsPerKgLeanBodyMass = proteinGrams }, Cmd.none
 
         let view(input: Input.DailyMacros, dispatch: 'a -> unit) : ReactElement =
-            let eventHandlers = ({
+            let (eventHandlers: DailyMacros.EventHandlers) = {
                 SelectActivityLevel = (fun event -> dispatch (``Select Activity Level`` event.Value))
                 ChangeProteinGrams = (fun grams -> dispatch (``Select Protein Grams Per Kg Lean Body Mass`` grams))
-            } : DailyMacros.EventHandlers)
+            }
 
             let dailyMacrosFields = DailyMacros.Fields.CreateEnabled(
                 input = input,
@@ -101,6 +101,13 @@ module Calculator =
     type State =
         | BodyCompositionStep of form: Input.BodyComposition
         | DailyMacrosStep of form: Input.DailyMacros
+
+        member this.BodyComposition : Domain.BodyComposition option =
+            match this with
+            | BodyCompositionStep form ->
+                form.Validate() |> Utilities.Result.toOption
+            | DailyMacrosStep form ->
+                Some form.BodyComposition
 
     let init() = BodyCompositionStep BodyComposition.Default, Cmd.none
 
@@ -147,11 +154,15 @@ module Calculator =
                     DailyMacros.view(dailyMacros, dmDispatch)
                 ]
 
-        let outputs = []
+        let (bodyCompositionResult: Html.BodyComposition.Result) = {
+            BodyComposition = form.BodyComposition
+        }
 
         fluidContainer [
             row [
                 ``col-4`` inputs
-                col []
+                col [
+                    bodyCompositionResult.Card
+                ]
             ]
         ]

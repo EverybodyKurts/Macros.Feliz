@@ -636,6 +636,73 @@ module Library =
                         ]
                     ]
 
+            type Result = {
+                BodyComposition: Domain.BodyComposition option
+            } with
+                member this.Enabled : bool =
+                    this.BodyComposition.IsSome
+
+                member private this.LmmText =
+                    option {
+                        let! bc = this.BodyComposition
+
+                        return bc.LeanMuscleMass.Text
+                    } |> Option.defaultValue ""
+
+                member private this.FatMassText =
+                    option {
+                        let! bc = this.BodyComposition
+
+                        return bc.FatMass.Text
+                    } |> Option.defaultValue ""
+
+                member this.Card : ReactElement =
+                    Html.div [
+                        prop.className "card"
+                        prop.children [
+                            Html.div [
+                                prop.className "card-header"
+                                prop.text "Body Composition Result"
+                            ]
+
+                            Html.table [
+                                prop.className "table mb-0"
+
+                                prop.children [
+                                    Html.tbody [
+                                        Html.tr [
+                                            prop.children [
+                                                Html.th [
+                                                    prop.scope "row"
+                                                    prop.text "Lean Muscle Mass"
+                                                    prop.className "col-4 ps-3"
+                                                ]
+
+                                                Html.td [
+                                                    prop.text this.LmmText
+                                                ]
+                                            ]
+                                        ]
+
+                                        Html.tr [
+                                            prop.children [
+                                                Html.th [
+                                                    prop.scope "row"
+                                                    prop.text "Fat Mass"
+                                                    prop.className "col-4 ps-3"
+                                                ]
+
+                                                Html.td [
+                                                    prop.text this.FatMassText
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+
         module DailyMacros =
             type EventHandlers = {
                 SelectActivityLevel: (Browser.Types.Event -> unit)
@@ -814,3 +881,40 @@ module Library =
 
                 static member CreateDisabled(?input: Input.DailyMacros) : Fields =
                     DisabledMacrosFields input
+
+    module Charts =
+        open Feliz
+        open Feliz.Recharts
+
+        let radian = Math.PI / 180.0
+
+        module PieChart =
+            type Label = {
+                cx: float
+                cy: float
+                midAngle: float
+                innerRadius: float
+                outerRadius: float
+                percent: float
+                index: uint
+            } with
+                member this.Radius : float =
+                    this.innerRadius + (this.outerRadius - this.innerRadius) * 0.5
+
+                member this.x : float =
+                    this.cx + this.Radius * Math.Cos(-this.midAngle * radian)
+
+                member this.y : float =
+                    this.cy + this.Radius * Math.Sin(-this.midAngle * radian)
+
+                // member this.Draw() =
+                //     Recharts.text([
+                //         prop.x this.x
+                //         prop.y this.y
+                //         prop.fill "#fff"
+                //         prop.textAnchor "middle"
+                //         prop.fontSize 12
+                //         prop.children [
+                //             prop.text $"{this.percent * 100.0}%"
+                //         ]
+                //     ])
