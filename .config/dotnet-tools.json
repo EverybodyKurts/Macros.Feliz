@@ -9,13 +9,13 @@
       ]
     },
     "femto": {
-      "version": "0.17.1",
+      "version": "0.19.0",
       "commands": [
         "femto"
       ]
     },
     "paket": {
-      "version": "7.2.1",
+      "version": "8.0.0-alpha002",
       "commands": [
         "paket"
       ]
