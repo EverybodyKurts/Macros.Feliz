@@ -154,6 +154,26 @@ module Library =
             let isIn (proteinGrams: float<g/kg>) : bool =
                 min <= proteinGrams && proteinGrams <= max
 
+        module DailyMacros =
+            type Percentages = {
+                Protein: float<pct>
+                Carbs: float<pct>
+                Fat: float<pct>
+            } with
+                static member internal Default : Percentages =
+                    {
+                        Protein = 34.0<pct>
+                        Carbs = 33.0<pct>
+                        Fat = 33.0<pct>
+                    }
+
+                static member internal Create(protein: float<pct>, carbs: float<pct>, fat: float<pct>) : Percentages =
+                    {
+                        Protein = protein
+                        Carbs = carbs
+                        Fat = fat
+                    }
+
         type DailyMacros = {
             BodyComposition: BodyComposition
             DailyActivityLevel: DailyActivityLevel
@@ -340,6 +360,85 @@ module Library =
                 match input |> tryCreate with
                 | Some dal -> Ok dal
                 | None -> Error $"Invalid daily activity level: {input}"
+
+        module DailyMacros =
+            module Percentages =
+                let (|ValidPercentage|_|) (pct: float) =
+                    if 0.0 <= pct && pct <= 100.0 then Some <| pct * 1.0<pct>
+                    else None
+
+            open Percentages
+
+            type Percentages = {
+                Protein: float option
+                Carbs: float option
+                Fat: float option
+            } with
+                member this.Validate() =
+                    match this.Protein, this.Carbs, this.Fat with
+                    // all macronutrients provided, are valid, and sum to 100%
+                    | Some (ValidPercentage p), Some (ValidPercentage c), Some (ValidPercentage f) when p + c + f = 100.0<pct> ->
+                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = c, fat = f)
+
+                    // all macronutrients are provided and valid but do not sum to 100%
+                    | Some (ValidPercentage p), Some (ValidPercentage c), Some (ValidPercentage f) ->
+                        Error $"Macro percentages need to sum to 100 percent. Protein = {p}, Carbs = {c}, Fat = {f}"
+
+                    // protein & carbs provided and when summed are less than or equal to 100 percentage
+                    | Some (ValidPercentage p), Some (ValidPercentage c), None when p + c <= 100.0<pct> ->
+                        let fat = 100.0<pct> - (p + c)
+
+                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = c, fat = fat)
+
+                    // protein & carbs provided and when summed are greater than 100 percentage
+                    | Some (ValidPercentage p), Some (ValidPercentage c), None ->
+                        Error $"Protein and carbs percentages > 100 percent. Protein = {p}, Carbs = {c}"
+
+                    // protein & carbs provided and when summed are less than or equal to 100 percentage
+                    | Some (ValidPercentage p), None, Some (ValidPercentage f) when p + f <= 100.0<pct> ->
+                        let carbs = 100.0<pct> - (p + f)
+
+                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = carbs, fat = f)
+
+                    // protein & carbs provided and when summed are less than or equal to 100 percentage
+                    | Some (ValidPercentage p), None, Some (ValidPercentage f) ->
+                        Error $"Protein and fats percentages > 100 percent. Protein = {p}, Fat = {f}"
+
+                    // carbs & fat provided and when summed are less than or equal to 100 percentage
+                    | None, Some (ValidPercentage c), Some (ValidPercentage f) when c + f <= 100.0<pct> ->
+                        let protein = 100.0<pct> - (c + f)
+
+                        Ok <| DailyMacros.Percentages.Create(protein = protein, carbs = c, fat = f)
+
+                    // carbs & fat provided and when summed are greater than 100 percentage
+                    | None, Some (ValidPercentage c), Some (ValidPercentage f) ->
+                        Error $"Carbs nad fat percentages > 100 percent. Carbs = {c}, Fat = {f}"
+
+                    // only protein is provided and is less than or equal to 100 percentage
+                    | Some (ValidPercentage p), None, None ->
+                        let otherPercentage = (100.0<pct> - p) / 2.0
+
+                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = otherPercentage, fat = otherPercentage)
+
+                    // only carbs is provided and is less than or equal to 100 percentage
+                    | None, Some (ValidPercentage c), None ->
+                        let otherPercentage = (100.0<pct> - c) / 2.0
+
+                        Ok <| DailyMacros.Percentages.Create(protein = otherPercentage, carbs = c, fat = otherPercentage)
+
+                    // only fat is provided and is less than or equal to 100 percentage
+                    | None, None, Some (ValidPercentage f) ->
+                        let otherPercentage = (100.0<pct> - f) / 2.0
+
+                        Ok <| DailyMacros.Percentages.Create(protein = otherPercentage, carbs = otherPercentage, fat = f)
+
+                    // no macro percentages provided, use default values
+                    | None, None, None ->
+                        Ok <| DailyMacros.Percentages.Default
+
+                    // any other case, error out
+                    | _ ->
+                        Error $"Invalid percentages. Protein = {this.Protein}, Carbs = {this.Carbs}, Fat = {this.Fat} "
 
         type DailyMacros = {
             BodyComposition: Domain.BodyComposition
