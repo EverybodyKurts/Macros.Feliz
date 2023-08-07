@@ -218,6 +218,54 @@ module Library =
                     Percentage = percentage
                 }
 
+        type DailyMacros2 = {
+            BodyComposition: BodyComposition
+            DailyActivityLevel: DailyActivityLevel
+            Percentages: DailyMacros.Percentages
+        }  with
+            member this.LeanMuscleMass : Mass =
+                this.BodyComposition.LeanMuscleMass
+
+            member this.TotalCalories : float<kcal> =
+                this.DailyActivityLevel.Multiplier * this.BodyComposition.BasalMetabolicRate
+
+            member this.Protein : DailyMacronutrient =
+                let decimal = (this.Percentages.Protein |> float) / 100.0
+                let calories = this.TotalCalories * decimal
+                let grams = calories / Macronutrients.ProteinCaloriesPerGram
+
+                {
+                    Grams = grams
+                    Calories = calories
+                    Percentage = this.Percentages.Protein
+                }
+
+            member this.ProteinGramsPerKgLeanBodyMass : float<g/kg> =
+                this.Protein.Grams / this.LeanMuscleMass.KgMeasure
+
+            member this.Carbs: DailyMacronutrient =
+                let decimal = (this.Percentages.Carbs |> float) / 100.0
+                let calories = this.TotalCalories * decimal
+                let grams = calories / Macronutrients.CarbCaloriesPerGram
+
+                {
+                    Grams = grams
+                    Calories = calories
+                    Percentage = this.Percentages.Carbs
+                }
+
+            member this.Fat: DailyMacronutrient =
+                let decimal = (this.Percentages.Fat |> float) / 100.0
+                let calories = this.TotalCalories * decimal
+                let grams = calories / Macronutrients.FatCaloriesPerGram
+
+                {
+                    Grams = grams
+                    Calories = calories
+                    Percentage = this.Percentages.Fat
+                }
+
+
     /// Handles user input that is not yet validated
     module Input =
         open FsToolkit.ErrorHandling
@@ -466,6 +514,23 @@ module Library =
                     BodyComposition = bodyComposition
                     DailyActivityLevel = dailyActivityLevel
                     ProteinGramsPerKgLeanBodyMass = proteinGrams
+                }
+
+        type DailyMacros2 = {
+            BodyComposition: Domain.BodyComposition
+            DailyActivityLevel: string
+            Percentages: DailyMacros.Percentages
+        } with
+            member this.Validate() : Validation<Domain.DailyMacros2, string> =
+                validation {
+                    let! dal = this.DailyActivityLevel |> DailyActivityLevel.validate
+                    and! percentages = this.Percentages.Validate()
+
+                    return {
+                        BodyComposition = this.BodyComposition
+                        DailyActivityLevel = dal
+                        Percentages = percentages
+                    }
                 }
 
     module Html =
