@@ -218,6 +218,9 @@ module Library =
             member this.LeanMuscleMass : Mass =
                 this.BodyComposition.LeanMuscleMass
 
+            member this.BodyWeight : Mass =
+                this.BodyComposition.BodyWeight
+
             member this.TotalCalories : float<kcal> =
                 this.DailyActivityLevel.Multiplier * this.BodyComposition.BasalMetabolicRate
 
@@ -234,6 +237,15 @@ module Library =
 
             member this.ProteinGramsPerKgLeanBodyMass : float<g/kg> =
                 this.Protein.Grams / this.LeanMuscleMass.KgMeasure
+
+            member this.ProteinGramsPerKgBodyWeight : float<g/kg> =
+                this.Protein.Grams / this.BodyWeight.KgMeasure
+
+            member this.CarbGramsPerKgLeanBodyMass : float<g/kg> =
+                this.Carbs.Grams / this.LeanMuscleMass.KgMeasure
+
+            member this.CarbGramsPerKgBodyWeight : float<g/kg> =
+                this.Carbs.Grams / this.BodyWeight.KgMeasure
 
             member this.Carbs: DailyMacronutrient =
                 let decimal = (this.Percentages.Carbs |> float) / 100.0
@@ -1141,6 +1153,38 @@ module Library =
                     return dm.Fat
                 }
 
+            member private this.ProteinGramsPerKgBodyweightText : string =
+                option {
+                    let! dm = this.DailyMacros
+                    let pgpkbw = dm.ProteinGramsPerKgBodyWeight
+
+                    return $"{Math.Round(float pgpkbw, 2)} g / kg bodyweight"
+                } |> Option.defaultValue ""
+
+            member private this.ProteinGramsPerKgLeanMuscleMassText : string =
+                option {
+                    let! dm = this.DailyMacros
+                    let lmm = dm.ProteinGramsPerKgLeanBodyMass
+
+                    return $"{Math.Round(float lmm, 2)} g / kg lean muscle mass"
+                } |> Option.defaultValue ""
+
+            member private this.CarbGramsPerKgBodyweightText : string =
+                option {
+                    let! dm = this.DailyMacros
+                    let bw = dm.CarbGramsPerKgBodyWeight
+
+                    return $"{Math.Round(float bw, 2)} g / kg bodyweight"
+                } |> Option.defaultValue ""
+
+            member private this.CarbGramsPerKgLeanMuscleMassText: string =
+                option {
+                    let! dm = this.DailyMacros
+                    let lmm = dm.CarbGramsPerKgLeanBodyMass
+
+                    return $"{Math.Round(float lmm, 2)} g / kg lean muscle mass"
+                } |> Option.defaultValue ""
+
             member private this.ProteinGramsText : string=
                 option {
                     let! pm = this.TryProteinMacros
@@ -1239,6 +1283,10 @@ module Library =
                                 Html.tbody [
                                     prop.children [
                                         resultRow "Tot Cals / Day" this.TotalCaloriesText
+                                        resultRow "Protein Grams / Kg Bodyweight" this.ProteinGramsPerKgBodyweightText
+                                        resultRow "Protein Grams / Kg Lean Muscle Mass" this.ProteinGramsPerKgLeanMuscleMassText
+                                        resultRow "Carb Grams / Kg Bodyweight" this.CarbGramsPerKgBodyweightText
+                                        resultRow "Carb Grams / Kg Lean Muscle Mass" this.CarbGramsPerKgLeanMuscleMassText
 
                                         // protein macronutrients
                                         Html.tr [
