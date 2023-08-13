@@ -14,6 +14,13 @@ module Library =
         let lbPerKg : float<lb/kg> = 2.20462262<lb/kg>
         let kgPerLb : float<kg/lb> = 1.0 / lbPerKg
 
+        let clampFloat (min: float<'u>) (max: float<'u>) (value: float<'u>) : float<'u> =
+            // value is between min & max
+            if min <= value && value <= max then value
+            // min > value, choose min
+            else if min > value then min
+            else max
+
     module Macronutrients =
         [<Literal>]
         let ProteinCaloriesPerGram : float<kcal/g> = 4.0<kcal/g>
@@ -32,6 +39,9 @@ module Library =
             | Kg of kg : float<kg>
 
             /// Subtract one mass from another
+            ///
+            ///     (Lb 5.0<lb>) - (Lb 3.0<lb>) = (Lb 2.0<lb>)
+            ///     (Kg 5.0<kg>) - (Kg 3.0<kg>) = (Kg 2.0<kg>)
             static member (-) (mass1: Mass, mass2: Mass) : Mass =
                 match mass1, mass2 with
                 | Lb lb1, Lb lb2 -> Lb <| lb1 - lb2
@@ -67,8 +77,8 @@ module Library =
 
             member this.Text : string =
                 match this with
-                | Kg kg -> $"{kg} kg"
-                | Lb lb -> $"{lb} lb"
+                | Kg kg -> $"{Math.Round(float kg, 2)} kg"
+                | Lb lb -> $"{Math.Round(float lb, 2)} lb"
 
             member this.KgMeasure : float<kg> =
                 match this.ToKg() with
@@ -155,73 +165,55 @@ module Library =
                 min <= proteinGrams && proteinGrams <= max
 
         module DailyMacros =
-            type Percentages = {
+            type MacroPercentages = {
                 Protein: float<pct>
                 Carbs: float<pct>
                 Fat: float<pct>
             } with
-                static member internal Default : Percentages =
+                static member internal Default : MacroPercentages =
                     {
                         Protein = 34.0<pct>
                         Carbs = 33.0<pct>
                         Fat = 33.0<pct>
                     }
 
-                static member internal Create(protein: float<pct>, carbs: float<pct>, fat: float<pct>) : Percentages =
+                static member internal Create (protein: float<pct>, carbs: float<pct>, fat: float<pct>) : MacroPercentages =
                     {
                         Protein = protein
                         Carbs = carbs
                         Fat = fat
                     }
 
+                member this.UpdateProtein (protein: float<pct>) : MacroPercentages=
+                    let clampPct = clampFloat (0.0<pct>) (100.0<pct>)
+
+                    let protein = clampPct protein
+                    let carb = protein - this.Protein
+
+                    let fat =
+                        if carb < 0.0<pct> then this.Fat + carb
+                        else this.Fat
+
+                    { this with
+                        Protein = protein
+                        Carbs = clampPct carb
+                        Fat = clampPct fat
+                    }
+
+                member this.UpdateCarbs (carbs: float<pct>) : MacroPercentages =
+                    let clampPct = clampFloat (0.0<pct>) (100.0<pct>)
+                    let fat = carbs - this.Carbs
+
+
+                    { this with
+                        Carbs = clampPct carbs
+                        Fat = clampPct fat
+                    }
+
         type DailyMacros = {
             BodyComposition: BodyComposition
             DailyActivityLevel: DailyActivityLevel
-            ProteinGramsPerKgLeanBodyMass: float<g/kg>
-        } with
-            member this.LeanMuscleMass : Mass =
-                this.BodyComposition.LeanMuscleMass
-
-            member this.TotalCalories : float<kcal> =
-                this.DailyActivityLevel.Multiplier * this.BodyComposition.BasalMetabolicRate
-
-            member this.Protein : DailyMacronutrient =
-                let grams = this.LeanMuscleMass.KgMeasure * this.ProteinGramsPerKgLeanBodyMass
-                let cals = grams * Macronutrients.ProteinCaloriesPerGram
-                let percentage = (cals / this.TotalCalories) * 100.0<pct>
-
-                {
-                    Grams = grams
-                    Calories = cals
-                    Percentage = percentage
-                }
-
-            member this.Fat : DailyMacronutrient =
-                let calories = (this.TotalCalories - this.Protein.Calories) / 2.0
-                let grams = calories / Macronutrients.FatCaloriesPerGram
-                let percentage = (calories / this.TotalCalories) * 100.0<pct>
-
-                {
-                    Grams = grams
-                    Calories = calories
-                    Percentage = percentage
-                }
-
-            member this.Carbs : DailyMacronutrient =
-                let calories = (this.TotalCalories - this.Protein.Calories) / 2.0
-                let grams = calories / Macronutrients.CarbCaloriesPerGram
-                let percentage = (calories / this.TotalCalories) * 100.0<pct>
-
-                {
-                    Grams = grams
-                    Calories = calories
-                    Percentage = percentage
-                }
-
-        type DailyMacros2 = {
-            BodyComposition: BodyComposition
-            DailyActivityLevel: DailyActivityLevel
-            Percentages: DailyMacros.Percentages
+            Percentages: DailyMacros.MacroPercentages
         }  with
             member this.LeanMuscleMass : Mass =
                 this.BodyComposition.LeanMuscleMass
@@ -310,7 +302,7 @@ module Library =
                 }
 
             /// Validate body weight input. Amount must be a parseable float that is >= 0
-            member this.Validate() : Result<Domain.Mass, string> =
+            member this.Validate () : Result<Domain.Mass, string> =
                 match this.Amount, this.Unit with
                 | Some amount, Lb when amount >= 0 -> Ok <| Mass.CreateLb amount
                 | Some amount, Kg when amount >= 0 -> Ok <| Mass.CreateKg amount
@@ -318,15 +310,15 @@ module Library =
                 | None, _ -> Error "Weight amount must be present"
 
             /// Convert body weight to kg
-            member this.ToKg() : Weight =
-                match this.Validate() with
-                | Ok weight -> weight.ToKg() |> Weight.Create
+            member this.ToKg () : Weight =
+                match this.Validate () with
+                | Ok weight -> weight.ToKg () |> Weight.Create
                 | Error _ -> { this with Unit = Kg }
 
             /// Convert bodyweight to lb
-            member this.ToLb() : Weight =
-                match this.Validate() with
-                | Ok weight -> weight.ToLb() |> Weight.Create
+            member this.ToLb () : Weight =
+                match this.Validate () with
+                | Ok weight -> weight.ToLb () |> Weight.Create
                 | Error _ -> { this with Unit = Lb }
 
         type BodyComposition = {
@@ -397,11 +389,11 @@ module Library =
 
         module DailyActivityLevel =
             let tryCreate (input: string) : Domain.DailyActivityLevel option =
-                match input with
+                match input.ToLower() with
                 | "sedentary" -> Some Sedentary
-                | "moderate" -> Some ``Mostly Sedentary``
-                | "very" -> Some ``Lightly Active``
-                | "extra" -> Some ``Highly Active``
+                | "mostly sedentary" -> Some ``Mostly Sedentary``
+                | "lightly active" -> Some ``Lightly Active``
+                | "highly active" -> Some ``Highly Active``
                 | _ -> None
 
             let validate (input: string) : Result<Domain.DailyActivityLevel, string> =
@@ -418,110 +410,62 @@ module Library =
             open Percentages
 
             type Percentages = {
-                Protein: float option
-                Carbs: float option
-                Fat: float option
+                Protein: float
+                Carbs: float
+                Fat: float
             } with
-                member this.Validate() =
+                static member Default : Percentages =
+                    {
+                        Protein = 34.0
+                        Carbs = 33.0
+                        Fat = 33.0
+                    }
+
+                member this.Validate () : Result<DailyMacros.MacroPercentages, string> =
                     match this.Protein, this.Carbs, this.Fat with
                     // all macronutrients provided, are valid, and sum to 100%
-                    | Some (ValidPercentage p), Some (ValidPercentage c), Some (ValidPercentage f) when p + c + f = 100.0<pct> ->
-                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = c, fat = f)
+                    | ValidPercentage p, ValidPercentage c, ValidPercentage f when p + c + f = 100.0<pct> ->
+                        Ok <| DailyMacros.MacroPercentages.Create(protein = p, carbs = c, fat = f)
 
                     // all macronutrients are provided and valid but do not sum to 100%
-                    | Some (ValidPercentage p), Some (ValidPercentage c), Some (ValidPercentage f) ->
+                    | ValidPercentage p, ValidPercentage c, ValidPercentage f ->
                         Error $"Macro percentages need to sum to 100 percent. Protein = {p}, Carbs = {c}, Fat = {f}"
-
-                    // protein & carbs provided and when summed are less than or equal to 100 percentage
-                    | Some (ValidPercentage p), Some (ValidPercentage c), None when p + c <= 100.0<pct> ->
-                        let fat = 100.0<pct> - (p + c)
-
-                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = c, fat = fat)
-
-                    // protein & carbs provided and when summed are greater than 100 percentage
-                    | Some (ValidPercentage p), Some (ValidPercentage c), None ->
-                        Error $"Protein and carbs percentages > 100 percent. Protein = {p}, Carbs = {c}"
-
-                    // protein & carbs provided and when summed are less than or equal to 100 percentage
-                    | Some (ValidPercentage p), None, Some (ValidPercentage f) when p + f <= 100.0<pct> ->
-                        let carbs = 100.0<pct> - (p + f)
-
-                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = carbs, fat = f)
-
-                    // protein & carbs provided and when summed are less than or equal to 100 percentage
-                    | Some (ValidPercentage p), None, Some (ValidPercentage f) ->
-                        Error $"Protein and fats percentages > 100 percent. Protein = {p}, Fat = {f}"
-
-                    // carbs & fat provided and when summed are less than or equal to 100 percentage
-                    | None, Some (ValidPercentage c), Some (ValidPercentage f) when c + f <= 100.0<pct> ->
-                        let protein = 100.0<pct> - (c + f)
-
-                        Ok <| DailyMacros.Percentages.Create(protein = protein, carbs = c, fat = f)
-
-                    // carbs & fat provided and when summed are greater than 100 percentage
-                    | None, Some (ValidPercentage c), Some (ValidPercentage f) ->
-                        Error $"Carbs nad fat percentages > 100 percent. Carbs = {c}, Fat = {f}"
-
-                    // only protein is provided and is less than or equal to 100 percentage
-                    | Some (ValidPercentage p), None, None ->
-                        let otherPercentage = (100.0<pct> - p) / 2.0
-
-                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = otherPercentage, fat = otherPercentage)
-
-                    // only carbs is provided and is less than or equal to 100 percentage
-                    | None, Some (ValidPercentage c), None ->
-                        let otherPercentage = (100.0<pct> - c) / 2.0
-
-                        Ok <| DailyMacros.Percentages.Create(protein = otherPercentage, carbs = c, fat = otherPercentage)
-
-                    // only fat is provided and is less than or equal to 100 percentage
-                    | None, None, Some (ValidPercentage f) ->
-                        let otherPercentage = (100.0<pct> - f) / 2.0
-
-                        Ok <| DailyMacros.Percentages.Create(protein = otherPercentage, carbs = otherPercentage, fat = f)
-
-                    // no macro percentages provided, use default values
-                    | None, None, None ->
-                        Ok <| DailyMacros.Percentages.Default
 
                     // any other case, error out
                     | _ ->
                         Error $"Invalid percentages. Protein = {this.Protein}, Carbs = {this.Carbs}, Fat = {this.Fat} "
 
-        type DailyMacros = {
-            BodyComposition: Domain.BodyComposition
-            DailyActivityLevel: string
-            ProteinGramsPerKgLeanBodyMass: float
-        } with
-            member this.Validate() : Validation<Domain.DailyMacros, string> =
-                validation {
-                    let! dal = this.DailyActivityLevel |> DailyActivityLevel.validate
-                    and! proteinGrams = this.ProteinGramsPerKgLeanBodyMass |> ProteinGramsPerKgLeanBodyMass.validate
+                member this.UpdateProtein (protein: float) : Percentages=
+                    let clampPct value = Math.Clamp(value, 0.0, 100.0)
 
-                    return {
-                        BodyComposition = this.BodyComposition
-                        DailyActivityLevel = dal
-                        ProteinGramsPerKgLeanBodyMass = proteinGrams
+                    let protein = clampPct protein
+                    let carbs = this.Carbs - (protein - this.Protein)
+
+                    let fat =
+                        if carbs < 0.0 then this.Fat + carbs
+                        else this.Fat
+
+                    { this with
+                        Protein = protein
+                        Carbs = clampPct carbs
+                        Fat = clampPct fat
                     }
-                }
 
-            static member Create(bodyComposition: Domain.BodyComposition, ?dailyActivityLevel: string, ?proteinGramsPerKgLeanBodyMass: float) : DailyMacros =
-                let dailyActivityLevel = defaultArg dailyActivityLevel ""
-                let averageProteinGrams = Domain.ProteinGramsPerKgLeanBodyMass.average |> float
-                let proteinGrams = defaultArg proteinGramsPerKgLeanBodyMass averageProteinGrams
+                member this.UpdateCarbs (carbs: float) : Percentages =
+                    let clampPct value = Math.Clamp(value, 0.0, 100.0)
+                    let fat = this.Fat - (carbs - this.Carbs)
 
-                {
-                    BodyComposition = bodyComposition
-                    DailyActivityLevel = dailyActivityLevel
-                    ProteinGramsPerKgLeanBodyMass = proteinGrams
-                }
+                    { this with
+                        Carbs = clampPct carbs
+                        Fat = clampPct fat
+                    }
 
-        type DailyMacros2 = {
+        type DailyMacros = {
             BodyComposition: Domain.BodyComposition
             DailyActivityLevel: string
             Percentages: DailyMacros.Percentages
         } with
-            member this.Validate() : Validation<Domain.DailyMacros2, string> =
+            member this.Validate () : Validation<Domain.DailyMacros, string> =
                 validation {
                     let! dal = this.DailyActivityLevel |> DailyActivityLevel.validate
                     and! percentages = this.Percentages.Validate()
@@ -532,6 +476,17 @@ module Library =
                         Percentages = percentages
                     }
                 }
+
+            static member Create (bodyComposition: Domain.BodyComposition, ?dailyActivityLevel: string, ?percentages: DailyMacros.Percentages) : DailyMacros =
+                let dailyActivityLevel = defaultArg dailyActivityLevel ""
+                let percentages = defaultArg percentages DailyMacros.Percentages.Default
+
+                {
+                    BodyComposition = bodyComposition
+                    DailyActivityLevel = dailyActivityLevel
+                    Percentages = percentages
+                }
+
 
     module Html =
         open FsToolkit.ErrorHandling
@@ -554,13 +509,13 @@ module Library =
                 BodyComposition: Input.BodyComposition
                 Status: Status
             } with
-                static member CreateEnabled(bodyComposition: Input.BodyComposition,
-                                            updateWeightAmount: float -> unit,
-                                            updateBodyfatPercentage: int -> unit,
-                                            selectKgUnit: Browser.Types.MouseEvent -> unit,
-                                            selectLbUnit: Browser.Types.MouseEvent -> unit,
-                                            ?proceedToNextStep: Browser.Types.MouseEvent -> unit
-                                            ): Fields =
+                static member CreateEnabled (bodyComposition: Input.BodyComposition,
+                                             updateWeightAmount: float -> unit,
+                                             updateBodyfatPercentage: int -> unit,
+                                             selectKgUnit: Browser.Types.MouseEvent -> unit,
+                                             selectLbUnit: Browser.Types.MouseEvent -> unit,
+                                             ?proceedToNextStep: Browser.Types.MouseEvent -> unit
+                                             ) : Fields =
 
                     let enabledStatus =
                         Enabled {
@@ -576,7 +531,7 @@ module Library =
                         Status = enabledStatus
                     }
 
-                static member CreateDisabled(bodyComposition: Input.BodyComposition) : Fields =
+                static member CreateDisabled (bodyComposition: Input.BodyComposition) : Fields =
                     {
                         BodyComposition = bodyComposition
                         Status = Disabled
@@ -800,77 +755,11 @@ module Library =
                         ]
                     ]
 
-            type Result = {
-                BodyComposition: Domain.BodyComposition option
-            } with
-                member this.Enabled : bool =
-                    this.BodyComposition.IsSome
-
-                member private this.LmmText =
-                    option {
-                        let! bc = this.BodyComposition
-
-                        return bc.LeanMuscleMass.Text
-                    } |> Option.defaultValue ""
-
-                member private this.FatMassText =
-                    option {
-                        let! bc = this.BodyComposition
-
-                        return bc.FatMass.Text
-                    } |> Option.defaultValue ""
-
-                member this.Card : ReactElement =
-                    Html.div [
-                        prop.className "card"
-                        prop.children [
-                            Html.div [
-                                prop.className "card-header"
-                                prop.text "Body Composition Result"
-                            ]
-
-                            Html.table [
-                                prop.className "table mb-0"
-
-                                prop.children [
-                                    Html.tbody [
-                                        Html.tr [
-                                            prop.children [
-                                                Html.th [
-                                                    prop.scope "row"
-                                                    prop.text "Lean Muscle Mass"
-                                                    prop.className "col-4 ps-3"
-                                                ]
-
-                                                Html.td [
-                                                    prop.text this.LmmText
-                                                ]
-                                            ]
-                                        ]
-
-                                        Html.tr [
-                                            prop.children [
-                                                Html.th [
-                                                    prop.scope "row"
-                                                    prop.text "Fat Mass"
-                                                    prop.className "col-4 ps-3"
-                                                ]
-
-                                                Html.td [
-                                                    prop.text this.FatMassText
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-
         module DailyMacros =
             type EventHandlers = {
-                SelectActivityLevel: (Browser.Types.Event -> unit)
-                ChangeProteinGrams: (float -> unit)
+                SelectActivityLevel: Browser.Types.Event -> unit
+                ChangeProteinPercentage: float -> unit
+                ChangeCarbPercentage: float -> unit
             }
 
             type Fields =
@@ -895,23 +784,48 @@ module Library =
                             return! dailyMacros.DailyActivityLevel
                         }
 
-                member this.ProteinGramsPerKgLeanBodyMass : float =
+                member this.ProteinPercentage : float =
                     match this with
                     | EnabledMacrosFields (input, _) ->
-                        Decimal.Round(d = (input.ProteinGramsPerKgLeanBodyMass |> decimal), decimals = 2)
-                        |> float
+                        input.Percentages.Protein
                     | DisabledMacrosFields input ->
                         let defaultValue =
-                            Decimal.Round(d = (Domain.ProteinGramsPerKgLeanBodyMass.average |> decimal), decimals = 2)
-                            |> float
+                            DailyMacros.MacroPercentages.Default.Protein |> float
 
                         option {
-                            let! f = input
+                            let! i = input
 
-                            let rounded = Decimal.Round(d = (f.ProteinGramsPerKgLeanBodyMass |> decimal), decimals = 2) |> float
-
-                            return rounded
+                            return i.Percentages.Protein
                         } |> Option.defaultValue defaultValue
+
+                member this.CarbPercentage : float =
+                    match this with
+                    | EnabledMacrosFields (input, _) ->
+                        input.Percentages.Carbs
+                    | DisabledMacrosFields input ->
+                        let defaultValue =
+                            DailyMacros.MacroPercentages.Default.Carbs |> float
+
+                        option {
+                            let! i = input
+
+                            return i.Percentages.Carbs
+                        } |> Option.defaultValue defaultValue
+
+                member this.FatPercentage : float =
+                    match this with
+                    | EnabledMacrosFields (input, _) ->
+                        input.Percentages.Fat
+                    | DisabledMacrosFields input ->
+                        let defaultValue =
+                            DailyMacros.MacroPercentages.Default.Fat |> float
+
+                        option {
+                            let! i = input
+
+                            return i.Percentages.Fat
+                        } |> Option.defaultValue defaultValue
+
 
                 member this.TryEventHandlers : EventHandlers option =
                     match this with
@@ -922,7 +836,7 @@ module Library =
                 member this.DailyActivityLevelDropdown : ReactElement =
                     let eventHandlerProperties =
                         match this.TryEventHandlers with
-                        | Some eventHandlers -> [ prop.onSelect eventHandlers.SelectActivityLevel ]
+                        | Some eventHandlers -> [ prop.onChange eventHandlers.SelectActivityLevel ]
                         | None -> []
 
                     let dropdownProperties = [
@@ -975,41 +889,112 @@ module Library =
                         ]
                     ]
 
-                member this.ProteinGramsInput : ReactElement =
+                member this.ProteinPercentageInput : ReactElement =
                     let eventHandlerProperties =
                         match this.TryEventHandlers with
-                        | Some eventHandlers -> [ prop.onChange eventHandlers.ChangeProteinGrams ]
+                        | Some eventHandlers -> [ prop.onChange eventHandlers.ChangeProteinPercentage ]
                         | None -> []
 
                     Html.div [
                         prop.className "mb-3"
                         prop.children [
                             Html.label [
-                                prop.for' "protein-grams-input"
+                                prop.for' "protein-percentage-input-group"
                                 prop.className "form-label"
-                                prop.text "Protein Grams Per Kg Lean Body Mass"
+                                prop.text "Protein %"
                             ]
 
                             Html.div [
                                 prop.className "input-group"
+                                prop.id "protein-percentage-input-group"
                                 prop.children [
                                     (Html.input ([
-                                        prop.id "protein-grams-input"
+                                        prop.id "protein-percentage-range-input"
                                         prop.className "form-control"
                                         prop.type' "range"
-                                        prop.min (Domain.ProteinGramsPerKgLeanBodyMass.min |> float)
-                                        prop.max (Domain.ProteinGramsPerKgLeanBodyMass.max |> float)
-                                        prop.step 0.05
-                                        prop.value this.ProteinGramsPerKgLeanBodyMass
+                                        prop.min 0.0
+                                        prop.max 100.0
+                                        prop.step 1.0
+                                        prop.value this.ProteinPercentage
                                         prop.disabled this.IsDisabled
                                     ] @ eventHandlerProperties))
 
                                     Html.span [
-                                        prop.text $"{this.ProteinGramsPerKgLeanBodyMass} g / kg"
-                                        prop.className "input-group-text"
+                                        prop.text $"{this.ProteinPercentage} pct"
+                                        prop.className "input-group-text bg-success text-white"
                                     ]
                                 ]
                             ]
+                        ]
+                    ]
+
+                member this.CarbPercentageInput : ReactElement =
+                    let eventHandlerProperties =
+                        match this.TryEventHandlers with
+                        | Some eventHandlers -> [ prop.onChange eventHandlers.ChangeCarbPercentage ]
+                        | None -> []
+
+                    Html.div [
+                        prop.className "mb-3"
+                        prop.children [
+                            Html.label [
+                                prop.for' "carb-percentage-input-group"
+                                prop.className "form-label"
+                                prop.text "Carb %"
+                            ]
+
+                            Html.div [
+                                prop.className "input-group"
+                                prop.id "carb-percentage-input-group"
+                                prop.children [
+                                    (Html.input ([
+                                        prop.id "carb-percentage-range-input"
+                                        prop.className "form-control"
+                                        prop.type' "range"
+                                        prop.min 0.0
+                                        prop.max 100.0
+                                        prop.step 1.0
+                                        prop.value this.CarbPercentage
+                                        prop.disabled this.IsDisabled
+                                    ] @ eventHandlerProperties))
+
+                                    Html.span [
+                                        prop.text $"{this.CarbPercentage} pct"
+                                        prop.className "input-group-text bg-info text-white"
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+
+                member this.MacrosPercentageStackedProgressBar : ReactElement =
+                    let progress (label: string) (bgColor: string) (percentage: float) =
+                        Html.div [
+                            prop.className "progress"
+                            prop.role "progressbar"
+                            prop.ariaLabel label
+                            prop.ariaValueMin 0
+                            prop.ariaValueMax 100
+                            prop.ariaValueNow percentage
+                            prop.width percentage
+                            prop.style [ style.width (length.percent percentage) ]
+
+                            prop.children [
+                                Html.div [
+                                    prop.classes ["progress-bar"; "progress-bar-striped"; $"bg-{bgColor}" ]
+                                    prop.text $"{percentage} pct"
+                                ]
+                            ]
+                        ]
+
+                    Html.div [
+                        prop.className "progress-stacked"
+
+                        prop.children [
+                            // protein progress bar
+                            progress "Protein %" "success" this.ProteinPercentage
+                            progress "Carb %" "info" this.CarbPercentage
+                            progress "Fat %" "warning" this.FatPercentage
                         ]
                     ]
 
@@ -1034,51 +1019,274 @@ module Library =
 
                                 prop.children [
                                     this.DailyActivityLevelDropdown
-                                    this.ProteinGramsInput
+                                    this.ProteinPercentageInput
+                                    this.CarbPercentageInput
+                                    this.MacrosPercentageStackedProgressBar
                                 ]
                             ]
                         ]
                     ]
 
-                static member CreateEnabled(input: Input.DailyMacros, eventHandlers: EventHandlers) : Fields =
+                static member CreateEnabled (input: Input.DailyMacros, eventHandlers: EventHandlers) : Fields =
                     EnabledMacrosFields (input, eventHandlers)
 
-                static member CreateDisabled(?input: Input.DailyMacros) : Fields =
+                static member CreateDisabled (?input: Input.DailyMacros) : Fields =
                     DisabledMacrosFields input
 
-    module Charts =
-        open Feliz
-        open Feliz.Recharts
+        type CalculatorResults = {
+            BodyComposition: Domain.BodyComposition option
+            DailyMacros: Domain.DailyMacros option
+        } with
+            static member Create (?bodyComposition: Domain.BodyComposition, ?dailyMacros: Domain.DailyMacros) : CalculatorResults =
+                let dmBodyComposition = dailyMacros |> Option.map(fun dm -> dm.BodyComposition)
+                let bodyComposition =
+                    match dmBodyComposition with
+                    | Some _ -> dmBodyComposition
+                    | None -> bodyComposition
 
-        let radian = Math.PI / 180.0
+                {
+                    BodyComposition = bodyComposition
+                    DailyMacros = dailyMacros
+                }
 
-        module PieChart =
-            type Label = {
-                cx: float
-                cy: float
-                midAngle: float
-                innerRadius: float
-                outerRadius: float
-                percent: float
-                index: uint
-            } with
-                member this.Radius : float =
-                    this.innerRadius + (this.outerRadius - this.innerRadius) * 0.5
+            member this.Enabled : bool =
+                this.BodyComposition.IsSome
 
-                member this.x : float =
-                    this.cx + this.Radius * Math.Cos(-this.midAngle * radian)
+            member private this.LmmText : string =
+                option {
+                    let! bc = this.BodyComposition
 
-                member this.y : float =
-                    this.cy + this.Radius * Math.Sin(-this.midAngle * radian)
+                    return bc.LeanMuscleMass.Text
+                } |> Option.defaultValue ""
 
-                // member this.Draw() =
-                //     Recharts.text([
-                //         prop.x this.x
-                //         prop.y this.y
-                //         prop.fill "#fff"
-                //         prop.textAnchor "middle"
-                //         prop.fontSize 12
-                //         prop.children [
-                //             prop.text $"{this.percent * 100.0}%"
-                //         ]
-                //     ])
+            member private this.FatMassText : string =
+                option {
+                    let! bc = this.BodyComposition
+
+                    return bc.FatMass.Text
+                } |> Option.defaultValue ""
+
+            member private this.BasalMetabolicRateText : string =
+                option {
+                    let! bc = this.BodyComposition
+                    let bmr = Math.Round(float bc.BasalMetabolicRate, 2)
+
+                    return $"{bmr} kcal"
+                } |> Option.defaultValue ""
+
+            member private this.TotalCaloriesText : string =
+                option {
+                    let! dm = this.DailyMacros
+                    let totCals = Math.Round(float dm.TotalCalories, 2)
+
+                    return $"{totCals} kcal"
+                } |> Option.defaultValue ""
+
+            member this.BodyCompositionCard : ReactElement =
+                let resultRow (title: string) (value: string) =
+                    Html.tr [
+                        prop.children [
+                            Html.th [
+                                prop.scope "row"
+                                prop.text title
+                                prop.className "col-4 ps-3"
+                            ]
+
+                            Html.td [
+                                prop.text value
+                            ]
+                        ]
+                    ]
+
+                Html.div [
+                    prop.className "card mt-3"
+                    prop.children [
+                        Html.div [
+                            prop.className "card-header"
+                            prop.text "Body Composition Result"
+                        ]
+
+                        Html.table [
+                            prop.className "table mb-0"
+
+                            prop.children [
+                                Html.tbody [
+                                    resultRow "Lean Muscle Mass" this.LmmText
+                                    resultRow "Fat Mass" this.FatMassText
+                                    resultRow "Resting Metabolic Rate" this.BasalMetabolicRateText
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+
+            member private this.TryProteinMacros : DailyMacronutrient option =
+                option {
+                    let! dm = this.DailyMacros
+
+                    return dm.Protein
+                }
+
+            member private this.TryCarbMacros : DailyMacronutrient option =
+                option {
+                    let! dm = this.DailyMacros
+
+                    return dm.Carbs
+                }
+
+            member private this.TryFatMacros : DailyMacronutrient option =
+                option {
+                    let! dm = this.DailyMacros
+
+                    return dm.Fat
+                }
+
+            member private this.ProteinGramsText : string=
+                option {
+                    let! pm = this.TryProteinMacros
+
+                    return $"{Math.Round(float pm.Grams, 2)}"
+                } |> Option.defaultValue ""
+
+            member private this.ProteinCalsText : string=
+                option {
+                    let! pm = this.TryProteinMacros
+
+                    return $"{Math.Round(float pm.Calories, 2)}"
+                } |> Option.defaultValue ""
+
+            member private this.CarbGramsText : string=
+                option {
+                    let! pm = this.TryCarbMacros
+
+                    return $"{Math.Round(float pm.Grams, 2)}"
+                } |> Option.defaultValue ""
+
+            member private this.CarbCalsText : string=
+                option {
+                    let! cm = this.TryCarbMacros
+
+                    return $"{Math.Round(float cm.Calories, 2)}"
+                } |> Option.defaultValue ""
+
+            member private this.FatGramsText : string=
+                option {
+                    let! fm = this.TryFatMacros
+
+                    return $"{Math.Round(float fm.Grams, 2)}"
+                } |> Option.defaultValue ""
+
+            member private this.FatCalsText : string=
+                option {
+                    let! fm = this.TryFatMacros
+
+                    return $"{Math.Round(float fm.Calories, 2)}"
+                } |> Option.defaultValue ""
+
+            member _.MacronutrientTable (calsText: string, gramsText: string) : ReactElement =
+                Html.table [
+                    Html.tr [
+                        Html.th [
+                            prop.scope "row"
+                            prop.text "kCal"
+                        ]
+
+                        Html.td [
+                            prop.text calsText
+                        ]
+                    ]
+
+                    Html.tr [
+                        Html.th [
+                            prop.scope "row"
+                            prop.text "grams"
+                        ]
+
+                        Html.td [
+                            prop.text gramsText
+                        ]
+                    ]
+                ]
+
+            member this.DailyMacrosCard : ReactElement =
+                let resultRow (title: string) (value: string) =
+                    Html.tr [
+                        prop.children [
+                            Html.th [
+                                prop.scope "row"
+                                prop.text title
+                                prop.className "col-4 ps-3"
+                            ]
+
+                            Html.td [
+                                prop.text value
+                            ]
+                        ]
+                    ]
+
+                Html.div [
+                    prop.className "card mt-3"
+                    prop.children [
+                        Html.div [
+                            prop.className "card-header"
+                            prop.text "Daily Macros Result"
+                        ]
+
+                        Html.table [
+                            prop.className "table mb-0"
+
+                            prop.children [
+                                Html.tbody [
+                                    prop.children [
+                                        resultRow "Tot Cals / Day" this.TotalCaloriesText
+
+                                        // protein macronutrients
+                                        Html.tr [
+                                            prop.children [
+                                                Html.th [
+                                                    prop.scope "row"
+                                                    prop.text "Protein"
+                                                    prop.className "col-4 ps-3"
+                                                ]
+
+                                                Html.td [
+                                                    this.MacronutrientTable(calsText = this.ProteinCalsText, gramsText = this.ProteinGramsText)
+                                                ]
+                                            ]
+                                        ]
+
+                                        // carb macronutrients
+                                        Html.tr [
+                                            prop.children [
+                                                Html.th [
+                                                    prop.scope "row"
+                                                    prop.text "Carbs"
+                                                    prop.className "col-4 ps-3"
+                                                ]
+
+                                                Html.td [
+                                                    this.MacronutrientTable(calsText = this.CarbCalsText, gramsText = this.CarbGramsText)
+                                                ]
+                                            ]
+                                        ]
+
+                                        // fat macronutrients
+                                        Html.tr [
+                                            prop.children [
+                                                Html.th [
+                                                    prop.scope "row"
+                                                    prop.text "Fat"
+                                                    prop.className "col-4 ps-3"
+                                                ]
+
+                                                Html.td [
+                                                    this.MacronutrientTable(calsText = this.FatCalsText, gramsText = this.FatGramsText)
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]

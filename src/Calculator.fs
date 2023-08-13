@@ -41,12 +41,12 @@ module Calculator =
                 form.ToLb(), Cmd.none
 
             | ``Update Bodyfat Percentage`` bodyFatPct ->
-                form.UpdateBodyfatPercentage(bodyFatPct), Cmd.none
+                form.UpdateBodyfatPercentage (bodyFatPct), Cmd.none
 
             | ``Proceed to Next Step`` _ ->
                 invalidOp "Message shouldn't reach here"
 
-        let view(input: Input.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
+        let view (input: Input.BodyComposition, dispatch: 'a -> unit) : ReactElement list =
             let nextStepHandler =
                 option {
                     let! bodyComposition = input.Validate() |> Utilities.Result.toOption
@@ -70,7 +70,8 @@ module Calculator =
         /// The actions the user can perform when entering in their body weight & fat %
         type Msg =
             | ``Select Activity Level`` of activityLevel: string
-            | ``Select Protein Grams Per Kg Lean Body Mass`` of grams: float
+            | ``Update Protein Macro Percentage`` of pct: float
+            | ``Update Carb Macro Percentage`` of pct: float
 
         /// Updates the daily activity form
         let update (msg: Msg) (form: Input.DailyMacros) : Input.DailyMacros * Cmd<'a> =
@@ -78,13 +79,19 @@ module Calculator =
             | ``Select Activity Level`` dailyActivityLevel ->
                 { form with DailyActivityLevel = dailyActivityLevel }, Cmd.none
 
-            | ``Select Protein Grams Per Kg Lean Body Mass`` proteinGrams ->
-                { form with ProteinGramsPerKgLeanBodyMass = proteinGrams }, Cmd.none
+            | ``Update Protein Macro Percentage`` proteinPct ->
+                let percentages = form.Percentages.UpdateProtein proteinPct
+                { form with Percentages = percentages }, Cmd.none
 
-        let view(input: Input.DailyMacros, dispatch: 'a -> unit) : ReactElement =
+            | ``Update Carb Macro Percentage`` carbPct ->
+                let percentages = form.Percentages.UpdateCarbs carbPct
+                { form with Percentages = percentages }, Cmd.none
+
+        let view (input: Input.DailyMacros, dispatch: 'a -> unit) : ReactElement =
             let (eventHandlers: DailyMacros.EventHandlers) = {
                 SelectActivityLevel = (fun event -> dispatch (``Select Activity Level`` event.Value))
-                ChangeProteinGrams = (fun grams -> dispatch (``Select Protein Grams Per Kg Lean Body Mass`` grams))
+                ChangeProteinPercentage = dispatch << ``Update Protein Macro Percentage``
+                ChangeCarbPercentage = dispatch << ``Update Carb Macro Percentage``
             }
 
             let dailyMacrosFields = DailyMacros.Fields.CreateEnabled(
@@ -102,12 +109,19 @@ module Calculator =
         | BodyCompositionStep of form: Input.BodyComposition
         | DailyMacrosStep of form: Input.DailyMacros
 
-        member this.BodyComposition : Domain.BodyComposition option =
+        member this.TryBodyComposition : Domain.BodyComposition option =
             match this with
             | BodyCompositionStep form ->
                 form.Validate() |> Utilities.Result.toOption
             | DailyMacrosStep form ->
                 Some form.BodyComposition
+
+        member this.TryDailyMacros : Domain.DailyMacros option =
+            match this with
+            | BodyCompositionStep _ -> None
+            | DailyMacrosStep form ->
+                console.log $"{form.Validate()}"
+                form.Validate() |> Utilities.Result.toOption
 
     let init() = BodyCompositionStep BodyComposition.Default, Cmd.none
 
@@ -115,7 +129,7 @@ module Calculator =
         match msg, state with
         // proceed from body composition form to daily activity form
         | BodyCompositionMsg (BodyComposition.``Proceed to Next Step`` bodyComposition), _ ->
-            let dailyMacrosForm = Input.DailyMacros.Create(bodyComposition)
+            let dailyMacrosForm = Input.DailyMacros.Create (bodyComposition)
             DailyMacrosStep dailyMacrosForm, Cmd.none
 
         | BodyCompositionMsg msg, BodyCompositionStep bodyCompositionForm ->
@@ -133,7 +147,7 @@ module Calculator =
             state, Cmd.map DailyMacrosMsg cmd
 
     [<ReactComponent>]
-    let View() : ReactElement =
+    let View () : ReactElement =
         let form, dispatch = React.useElmish(init, update, [| |])
 
         let inputs =
@@ -154,15 +168,17 @@ module Calculator =
                     DailyMacros.view(dailyMacros, dmDispatch)
                 ]
 
-        let (bodyCompositionResult: Html.BodyComposition.Result) = {
-            BodyComposition = form.BodyComposition
-        }
+        let results = Html.CalculatorResults.Create(
+            ?bodyComposition = form.TryBodyComposition,
+            ?dailyMacros = form.TryDailyMacros
+        )
 
         fluidContainer [
             row [
                 ``col-4`` inputs
                 col [
-                    bodyCompositionResult.Card
+                    results.BodyCompositionCard
+                    results.DailyMacrosCard
                 ]
             ]
         ]
