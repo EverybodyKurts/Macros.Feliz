@@ -125,6 +125,12 @@ module Library =
                 this.LeanMuscleMass.KgMeasure
                 |> basalMetabolicRate
 
+            member this.BasalMetabolicRateText : string =
+                $"{Math.Round(float this.BasalMetabolicRate, 2)} kcal"
+
+            member this.BodyfatPercentageText : string =
+                $"{this.BodyfatPercentage} pct"
+
             /// Compute body composition at a certain bodyfat % with the current lean muscle mass
             member this.AtBodyFatPercentage (bodyFatPercentage: uint<pct>) : BodyComposition =
                 let bfPct = (float bodyFatPercentage) * 1.0<pct>
@@ -172,7 +178,18 @@ module Library =
             Grams: float<g>
             Calories: float<kcal>
             Percentage: float<pct>
-        }
+        } with
+            member this.GramsText : string =
+                let amount = Math.Round(float this.Grams, 2)
+                $"{amount} g"
+
+            member this.CaloriesText : string =
+                let amount = Math.Round(float this.Calories, 2)
+                $"{amount} kcal"
+
+            member this.PercentageText : string =
+                let amount = Math.Round(float this.Percentage, 2)
+                $"{amount} pct"
 
         module ProteinGramsPerKgLeanBodyMass =
             let range = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
