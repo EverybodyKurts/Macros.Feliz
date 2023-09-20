@@ -126,7 +126,7 @@ module Library =
                 |> basalMetabolicRate
 
             /// Compute body composition at a certain bodyfat % with the current lean muscle mass
-            member this.AtBodyFatPercentage(bodyFatPercentage: uint<pct>) : BodyComposition =
+            member this.AtBodyFatPercentage (bodyFatPercentage: uint<pct>) : BodyComposition =
                 let bfPct = (float bodyFatPercentage) * 1.0<pct>
 
                 let lmm = this.LeanMuscleMass
