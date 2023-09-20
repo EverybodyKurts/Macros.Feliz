@@ -812,6 +812,50 @@ module Library =
                         ]
                     ]
 
+        module DailyMacronutrient =
+            let table (dailyMacronutrient: DailyMacronutrient option) : ReactElement =
+                let caloriesText = dailyMacronutrient |> Option.map (fun dm -> dm.CaloriesText) |> Option.defaultValue ""
+                let gramsText = dailyMacronutrient |> Option.map (fun dm -> dm.GramsText) |> Option.defaultValue ""
+
+                Html.table [
+                    Html.tr [
+                        Html.th [
+                            prop.scope "row"
+                            prop.text "kCal"
+                        ]
+
+                        Html.td [
+                            prop.text caloriesText
+                        ]
+                    ]
+
+                    Html.tr [
+                        Html.th [
+                            prop.scope "row"
+                            prop.text "grams"
+                        ]
+
+                        Html.td [
+                            prop.text gramsText
+                        ]
+                    ]
+                ]
+
+            let headerTableRow (title: string) (dailyMacronutrient: DailyMacronutrient option) : ReactElement =
+                Html.tr [
+                    prop.children [
+                        Html.th [
+                            prop.scope "row"
+                            prop.text title
+                            prop.className "col-4 ps-3"
+                        ]
+
+                        Html.td [
+                            table dailyMacronutrient
+                        ]
+                    ]
+                ]
+
         module DailyMacros =
             type EventHandlers = {
                 SelectActivityLevel: Browser.Types.Event -> unit
@@ -1090,6 +1134,22 @@ module Library =
                 static member CreateDisabled (?input: Input.DailyMacros) : Fields =
                     DisabledMacrosFields input
 
+        module CalculatorResults =
+            let tableRow (title: string) (text: string) =
+                Html.tr [
+                    prop.children [
+                        Html.th [
+                            prop.scope "row"
+                            prop.text title
+                            prop.className "col-4 ps-3"
+                        ]
+
+                        Html.td [
+                            prop.text text
+                        ]
+                    ]
+                ]
+
         type CalculatorResults = {
             BodyComposition: Domain.BodyComposition option
             DailyMacros: Domain.DailyMacros option
@@ -1126,9 +1186,8 @@ module Library =
             member private this.BasalMetabolicRateText : string =
                 option {
                     let! bc = this.BodyComposition
-                    let bmr = Math.Round(float bc.BasalMetabolicRate, 2)
 
-                    return $"{bmr} kcal"
+                    return bc.BasalMetabolicRateText
                 } |> Option.defaultValue ""
 
             member private this.TotalCaloriesText : string =
@@ -1140,27 +1199,19 @@ module Library =
                 } |> Option.defaultValue ""
 
             member this.BodyCompositionCard : ReactElement =
-                let resultRow (title: string) (value: string) =
-                    Html.tr [
-                        prop.children [
-                            Html.th [
-                                prop.scope "row"
-                                prop.text title
-                                prop.className "col-4 ps-3"
-                            ]
+                let bodyCompositionText =
+                    option {
+                        let! bc = this.BodyComposition
 
-                            Html.td [
-                                prop.text value
-                            ]
-                        ]
-                    ]
+                        return $"Body Composition @ {bc.BodyfatPercentageText}"
+                    } |> Option.defaultValue "Body Composition"
 
                 Html.div [
                     prop.className "card mt-3"
                     prop.children [
                         Html.div [
                             prop.className "card-header"
-                            prop.text "Body Composition Result"
+                            prop.text bodyCompositionText
                         ]
 
                         Html.table [
@@ -1168,9 +1219,9 @@ module Library =
 
                             prop.children [
                                 Html.tbody [
-                                    resultRow "Lean Muscle Mass" this.LmmText
-                                    resultRow "Fat Mass" this.FatMassText
-                                    resultRow "Resting Metabolic Rate" this.BasalMetabolicRateText
+                                    CalculatorResults.tableRow "Lean MuscleMass" this.LmmText
+                                    CalculatorResults.tableRow "Fat Mass" this.FatMassText
+                                    CalculatorResults.tableRow "Resting Metabolic Rate" this.BasalMetabolicRateText
                                 ]
                             ]
                         ]
@@ -1203,7 +1254,7 @@ module Library =
                     let! dm = this.DailyMacros
                     let pgpkbw = dm.ProteinGramsPerKgBodyWeight
 
-                    return $"{Math.Round(float pgpkbw, 2)} g / kg bodyweight"
+                    return $"{Math.Round(float pgpkbw, 2)} g / kg"
                 } |> Option.defaultValue ""
 
             member private this.ProteinGramsPerKgLeanMuscleMassText : string =
@@ -1211,7 +1262,7 @@ module Library =
                     let! dm = this.DailyMacros
                     let lmm = dm.ProteinGramsPerKgLeanBodyMass
 
-                    return $"{Math.Round(float lmm, 2)} g / kg lean muscle mass"
+                    return $"{Math.Round(float lmm, 2)} g / kg"
                 } |> Option.defaultValue ""
 
             member private this.CarbGramsPerKgBodyweightText : string =
@@ -1219,7 +1270,7 @@ module Library =
                     let! dm = this.DailyMacros
                     let bw = dm.CarbGramsPerKgBodyWeight
 
-                    return $"{Math.Round(float bw, 2)} g / kg bodyweight"
+                    return $"{Math.Round(float bw, 2)} g / kg"
                 } |> Option.defaultValue ""
 
             member private this.CarbGramsPerKgLeanMuscleMassText: string =
@@ -1227,92 +1278,10 @@ module Library =
                     let! dm = this.DailyMacros
                     let lmm = dm.CarbGramsPerKgLeanBodyMass
 
-                    return $"{Math.Round(float lmm, 2)} g / kg lean muscle mass"
+                    return $"{Math.Round(float lmm, 2)} g / kg"
                 } |> Option.defaultValue ""
-
-            member private this.ProteinGramsText : string=
-                option {
-                    let! pm = this.TryProteinMacros
-
-                    return $"{Math.Round(float pm.Grams, 2)}"
-                } |> Option.defaultValue ""
-
-            member private this.ProteinCalsText : string=
-                option {
-                    let! pm = this.TryProteinMacros
-
-                    return $"{Math.Round(float pm.Calories, 2)}"
-                } |> Option.defaultValue ""
-
-            member private this.CarbGramsText : string=
-                option {
-                    let! pm = this.TryCarbMacros
-
-                    return $"{Math.Round(float pm.Grams, 2)}"
-                } |> Option.defaultValue ""
-
-            member private this.CarbCalsText : string=
-                option {
-                    let! cm = this.TryCarbMacros
-
-                    return $"{Math.Round(float cm.Calories, 2)}"
-                } |> Option.defaultValue ""
-
-            member private this.FatGramsText : string=
-                option {
-                    let! fm = this.TryFatMacros
-
-                    return $"{Math.Round(float fm.Grams, 2)}"
-                } |> Option.defaultValue ""
-
-            member private this.FatCalsText : string=
-                option {
-                    let! fm = this.TryFatMacros
-
-                    return $"{Math.Round(float fm.Calories, 2)}"
-                } |> Option.defaultValue ""
-
-            member _.MacronutrientTable (calsText: string, gramsText: string) : ReactElement =
-                Html.table [
-                    Html.tr [
-                        Html.th [
-                            prop.scope "row"
-                            prop.text "kCal"
-                        ]
-
-                        Html.td [
-                            prop.text calsText
-                        ]
-                    ]
-
-                    Html.tr [
-                        Html.th [
-                            prop.scope "row"
-                            prop.text "grams"
-                        ]
-
-                        Html.td [
-                            prop.text gramsText
-                        ]
-                    ]
-                ]
 
             member this.DailyMacrosCard : ReactElement =
-                let resultRow (title: string) (value: string) =
-                    Html.tr [
-                        prop.children [
-                            Html.th [
-                                prop.scope "row"
-                                prop.text title
-                                prop.className "col-4 ps-3"
-                            ]
-
-                            Html.td [
-                                prop.text value
-                            ]
-                        ]
-                    ]
-
                 Html.div [
                     prop.className "card mt-3"
                     prop.children [
@@ -1322,61 +1291,20 @@ module Library =
                         ]
 
                         Html.table [
-                            prop.className "table mb-0"
+                            prop.classes ["table"; "table-sm"; "mb-0"]
 
                             prop.children [
                                 Html.tbody [
                                     prop.children [
-                                        resultRow "Tot Cals / Day" this.TotalCaloriesText
-                                        resultRow "Protein Grams / Kg Bodyweight" this.ProteinGramsPerKgBodyweightText
-                                        resultRow "Protein Grams / Kg Lean Muscle Mass" this.ProteinGramsPerKgLeanMuscleMassText
-                                        resultRow "Carb Grams / Kg Bodyweight" this.CarbGramsPerKgBodyweightText
-                                        resultRow "Carb Grams / Kg Lean Muscle Mass" this.CarbGramsPerKgLeanMuscleMassText
+                                        CalculatorResults.tableRow "Tot Cals / Day" this.TotalCaloriesText
+                                        CalculatorResults.tableRow "Protein Grams / Kg Bodyweight" this.ProteinGramsPerKgBodyweightText
+                                        CalculatorResults.tableRow "Protein Grams / Kg Lean Muscle Mass" this.ProteinGramsPerKgLeanMuscleMassText
+                                        CalculatorResults.tableRow "Carb Grams / Kg Bodyweight" this.CarbGramsPerKgBodyweightText
+                                        CalculatorResults.tableRow "Carb Grams / Kg Lean Muscle Mass" this.CarbGramsPerKgLeanMuscleMassText
 
-                                        // protein macronutrients
-                                        Html.tr [
-                                            prop.children [
-                                                Html.th [
-                                                    prop.scope "row"
-                                                    prop.text "Protein"
-                                                    prop.className "col-4 ps-3"
-                                                ]
-
-                                                Html.td [
-                                                    this.MacronutrientTable(calsText = this.ProteinCalsText, gramsText = this.ProteinGramsText)
-                                                ]
-                                            ]
-                                        ]
-
-                                        // carb macronutrients
-                                        Html.tr [
-                                            prop.children [
-                                                Html.th [
-                                                    prop.scope "row"
-                                                    prop.text "Carbs"
-                                                    prop.className "col-4 ps-3"
-                                                ]
-
-                                                Html.td [
-                                                    this.MacronutrientTable(calsText = this.CarbCalsText, gramsText = this.CarbGramsText)
-                                                ]
-                                            ]
-                                        ]
-
-                                        // fat macronutrients
-                                        Html.tr [
-                                            prop.children [
-                                                Html.th [
-                                                    prop.scope "row"
-                                                    prop.text "Fat"
-                                                    prop.className "col-4 ps-3"
-                                                ]
-
-                                                Html.td [
-                                                    this.MacronutrientTable(calsText = this.FatCalsText, gramsText = this.FatGramsText)
-                                                ]
-                                            ]
-                                        ]
+                                        DailyMacronutrient.headerTableRow "Protein" this.TryProteinMacros
+                                        DailyMacronutrient.headerTableRow "Carbs" this.TryCarbMacros
+                                        DailyMacronutrient.headerTableRow "Fat" this.TryFatMacros
                                     ]
                                 ]
                             ]
