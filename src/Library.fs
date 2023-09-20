@@ -2,6 +2,7 @@ namespace App
 
 module Library =
     open System
+    open FSharp.Core.Fluent
 
     [<AutoOpen>]
     module UnitsOfMeasure =
@@ -193,12 +194,9 @@ module Library =
 
         module ProteinGramsPerKgLeanBodyMass =
             let range = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
-            let average = range |> Seq.average
-            let min = range |> Seq.min
-            let max = range |> Seq.max
-
-            let isIn (proteinGrams: float<g/kg>) : bool =
-                min <= proteinGrams && proteinGrams <= max
+            let average = range.average()
+            let min = range.min()
+            let max = range.max()
 
         module DailyMacros =
             type MacroPercentages = {
