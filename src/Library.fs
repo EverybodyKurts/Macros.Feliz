@@ -80,17 +80,27 @@ module Library =
             static member CreateKg (amount: float) : Mass =
                 Kg <| amount * 1.0<kg>
 
+            /// Represent the mass as a string
+            ///
+            ///     (Lb 5.0<lb>).Text = "5.0 lb"
+            ///     (Kg 5.0<kg>).Text = "5.0 kg"
             member this.Text : string =
                 match this with
                 | Kg kg -> $"{Math.Round(float kg, 2)} kg"
                 | Lb lb -> $"{Math.Round(float lb, 2)} lb"
 
+            /// Convert the mass to the kg unit of measure
             member this.KgMeasure : float<kg> =
                 match this.ToKg() with
                 | Kg kg -> kg
                 | _ -> invalidOp "Domain.Mass.KgMeasure threw an exception"
 
+        /// <summary>
         /// Calculate basal metabolic rate with the Katch-McArdle formula
+        /// </summary>
+        ///
+        /// <param name="leanBodyMass">Lean body mass in kg</param>
+        /// <returns>Basal metabolic rate in kcal</returns>
         let basalMetabolicRate (leanBodyMass: float<kg>) : float<kcal> =
             370.0<kcal> + (21.6<kcal/kg> * leanBodyMass)
 
@@ -98,6 +108,7 @@ module Library =
             BodyWeight: Mass
             BodyfatPercentage: uint<pct>
         } with
+            /// The amount of fat mass on the body
             member this.FatMass : Mass =
                 let bf = float this.BodyfatPercentage / 100.0
 
@@ -105,9 +116,11 @@ module Library =
                 | Kg kg -> Kg <| kg * bf
                 | Lb lb -> Lb <| lb * bf
 
+            /// The amount of lean muscle mass on the body
             member this.LeanMuscleMass : Mass =
                 this.BodyWeight - this.FatMass
 
+            /// The number of calories burnt daily as the body performs basic (basal) life-sustaining functions
             member this.BasalMetabolicRate : float<kcal> =
                 this.LeanMuscleMass.KgMeasure
                 |> basalMetabolicRate
@@ -124,7 +137,7 @@ module Library =
                     BodyfatPercentage = bodyFatPercentage
                 }
 
-            /// Project body composition at current bf % down to 6% bf
+            /// Project body composition at current bodyfat % down to 6% bodyfat
             member this.Projections : BodyComposition seq =
                 seq { 6u<pct> .. 2u<pct> .. this.BodyfatPercentage}
                 |> Seq.sortDescending
@@ -154,7 +167,8 @@ module Library =
             static member Default =
                 Sedentary
 
-        type DailyMacronutrient = {
+        /// Holds the daily macronutrient breakdown for protein, carb, and fat.
+        type DailyMacronutrient = internal {
             Grams: float<g>
             Calories: float<kcal>
             Percentage: float<pct>
