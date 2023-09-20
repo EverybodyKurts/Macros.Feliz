@@ -54,8 +54,8 @@ module Library =
                 | Kg kg1, Kg kg2 -> Kg <| kg1 - kg2
                 | Kg kg, Lb lb -> Kg <| kg - (lb * kgPerLb)
 
-            /// Add two masses together
-            static member (*)(mass: Mass, num: float) : Mass =
+            /// Multiply a mass by a number
+            static member (*) (mass: Mass, num: float) : Mass =
                 match mass with
                 | Lb lb -> Lb <| lb * num
                 | Kg kg -> Kg <| kg * num
