@@ -219,7 +219,7 @@ module Library =
                     }
 
                 member this.UpdateProtein (protein: float<pct>) : MacroPercentages=
-                    let clampPct = clampFloat (0.0<pct>) (100.0<pct>)
+                    let clampPct = Float.clamp (0.0<pct>) (100.0<pct>)
 
                     let protein = clampPct protein
                     let carb = protein - this.Protein
@@ -235,7 +235,7 @@ module Library =
                     }
 
                 member this.UpdateCarbs (carbs: float<pct>) : MacroPercentages =
-                    let clampPct = clampFloat (0.0<pct>) (100.0<pct>)
+                    let clampPct = Float.clamp (0.0<pct>) (100.0<pct>)
                     let fat = carbs - this.Carbs
 
 
@@ -427,11 +427,13 @@ module Library =
         module ProteinGramsPerKgLeanBodyMass =
             let validate (proteinGrams: float) : Result<float<g/kg>,string> =
                 let p = proteinGrams * 1.0<g/kg>
+                let minProtein = ProteinGramsPerKgLeanBodyMass.min
+                let maxProtein = ProteinGramsPerKgLeanBodyMass.max
 
-                if Domain.ProteinGramsPerKgLeanBodyMass.isIn p then
+                if Float.isBetween minProtein maxProtein p then
                     Ok p
                 else
-                    Error $"Protein grams must be between {Domain.ProteinGramsPerKgLeanBodyMass.min} && {Domain.ProteinGramsPerKgLeanBodyMass.max}"
+                    Error $"Protein grams must be between {minProtein} && {maxProtein}"
 
         module DailyActivityLevel =
             let tryCreate (input: string) : Domain.DailyActivityLevel option =
