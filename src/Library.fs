@@ -14,12 +14,17 @@ module Library =
         let lbPerKg : float<lb/kg> = 2.20462262<lb/kg>
         let kgPerLb : float<kg/lb> = 1.0 / lbPerKg
 
-        let clampFloat (min: float<'u>) (max: float<'u>) (value: float<'u>) : float<'u> =
-            // value is between min & max
-            if min <= value && value <= max then value
-            // min > value, choose min
-            else if min > value then min
-            else max
+        module Float =
+            let isBetween (min: float<'u>) (max: float<'u>) (value: float<'u>) : bool =
+                min <= value && value <= max
+
+            /// Clamp a float with a generic unit of measure between a min and max value
+            let clamp (min: float<'u>) (max: float<'u>) (value: float<'u>) : float<'u> =
+                // value is between min & max
+                if isBetween min max value then value
+                // min > value, choose min
+                else if min > value then min
+                else max
 
     module Macronutrients =
         [<Literal>]
