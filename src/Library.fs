@@ -303,6 +303,15 @@ module Library =
                     Percentage = this.Percentages.Fat
                 }
 
+            member this.AtBodyFatPercentage (bodyFatPercentage: uint<pct>) : DailyMacros =
+                let bodyComposition = this.BodyComposition.AtBodyFatPercentage bodyFatPercentage
+
+                {
+                    BodyComposition = bodyComposition
+                    DailyActivityLevel = this.DailyActivityLevel
+                    Percentages = this.Percentages
+                }
+
 
     /// Handles user input that is not yet validated
     module Input =
