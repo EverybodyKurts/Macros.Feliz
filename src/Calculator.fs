@@ -109,19 +109,52 @@ module Calculator =
         | BodyCompositionStep of form: Input.BodyComposition
         | DailyMacrosStep of form: Input.DailyMacros
 
-        member this.TryBodyComposition : Domain.BodyComposition option =
+        member this.TryBodyComposition () : Domain.BodyComposition option =
             match this with
             | BodyCompositionStep form ->
                 form.Validate() |> Utilities.Result.toOption
             | DailyMacrosStep form ->
                 Some form.BodyComposition
 
-        member this.TryDailyMacros : Domain.DailyMacros option =
+        member this.TryBodyComposition (bodyfatPct: uint<pct>) : Domain.BodyComposition option =
+            match this with
+            | BodyCompositionStep form ->
+                option {
+                    let! bodyComposition = form.Validate() |> Utilities.Result.toOption
+
+                    return bodyComposition.AtBodyFatPercentage(bodyfatPct)
+                }
+            | DailyMacrosStep form ->
+                Some form.BodyComposition
+
+        member this.TryBodyfatPercentage : uint<pct> option =
+            match this with
+            | BodyCompositionStep form ->
+                option {
+                    let! bodyComposition = form.Validate() |> Utilities.Result.toOption
+
+                    return bodyComposition.BodyfatPercentage
+                }
+
+            | DailyMacrosStep form ->
+                Some form.BodyComposition.BodyfatPercentage
+
+
+        member this.TryDailyMacros () : Domain.DailyMacros option =
             match this with
             | BodyCompositionStep _ -> None
             | DailyMacrosStep form ->
-                console.log $"{form.Validate()}"
                 form.Validate() |> Utilities.Result.toOption
+
+        member this.TryDailyMacros (bodyfatPct: uint<pct>) : Domain.DailyMacros option =
+            match this with
+            | BodyCompositionStep _ -> None
+            | DailyMacrosStep form ->
+                option {
+                    let! dm = form.Validate() |> Utilities.Result.toOption
+
+                    return dm.AtBodyFatPercentage(bodyfatPct)
+                }
 
     let init() = BodyCompositionStep BodyComposition.Default, Cmd.none
 
@@ -168,9 +201,30 @@ module Calculator =
                     DailyMacros.view(dailyMacros, dmDispatch)
                 ]
 
+        let smallerBfPct =
+            option {
+                let! bfPct = form.TryBodyfatPercentage
+                let smallerBfPct =  bfPct - 2u<pct>
+
+                return! form.TryBodyComposition (smallerBfPct)
+            }
+
+        let smallerDailyMacros =
+            option {
+                let! bfPct = form.TryBodyfatPercentage
+                let smallerBfPct =  bfPct - 2u<pct>
+
+                return! form.TryDailyMacros (smallerBfPct)
+            }
+
         let results = Html.CalculatorResults.Create(
-            ?bodyComposition = form.TryBodyComposition,
-            ?dailyMacros = form.TryDailyMacros
+            ?bodyComposition = form.TryBodyComposition (),
+            ?dailyMacros = form.TryDailyMacros ()
+        )
+
+        let smallerResults = Html.CalculatorResults.Create(
+            ?bodyComposition = smallerBfPct,
+            ?dailyMacros = smallerDailyMacros
         )
 
         fluidContainer [
@@ -179,6 +233,11 @@ module Calculator =
                 col [
                     results.BodyCompositionCard
                     results.DailyMacrosCard
+                ]
+
+                col [
+                    smallerResults.BodyCompositionCard
+                    smallerResults.DailyMacrosCard
                 ]
             ]
         ]
