@@ -61,23 +61,23 @@ module Library =
                 | Kg kg -> Kg <| kg * num
 
             /// Convert the mass to pounds
-            member this.ToLb() : Mass =
+            member this.ToLb () : Mass =
                 match this with
                 | Kg kg -> Lb <| kg * lbPerKg
                 | _ -> this
 
             /// Convert the mass to kilograms
-            member this.ToKg() : Mass =
+            member this.ToKg () : Mass =
                 match this with
                 | Lb lb -> Kg <| lb * kgPerLb
                 | _ -> this
 
-            /// Create a mass whose value is in pounds
-            static member CreateLb(amount: float) : Mass =
+            /// Create a mass whose unit of measure is lbs
+            static member CreateLb (amount: float) : Mass =
                 Lb <| amount * 1.0<lb>
 
-            /// Create a mass whose value is in kilograms
-            static member CreateKg(amount: float) : Mass =
+            /// Create a mass whose unit of measure is kgs
+            static member CreateKg (amount: float) : Mass =
                 Kg <| amount * 1.0<kg>
 
             member this.Text : string =
