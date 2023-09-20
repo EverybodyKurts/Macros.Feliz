@@ -194,9 +194,9 @@ module Library =
 
         module ProteinGramsPerKgLeanBodyMass =
             let range = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
-            let average = range.average()
-            let min = range.min()
-            let max = range.max()
+            let average = range |> Seq.average
+            let min = range |> Seq.min
+            let max = range |> Seq.max
 
         module DailyMacros =
             type MacroPercentages = {
@@ -1219,7 +1219,7 @@ module Library =
 
                             prop.children [
                                 Html.tbody [
-                                    CalculatorResults.tableRow "Lean MuscleMass" this.LmmText
+                                    CalculatorResults.tableRow "Lean Muscle Mass" this.LmmText
                                     CalculatorResults.tableRow "Fat Mass" this.FatMassText
                                     CalculatorResults.tableRow "Resting Metabolic Rate" this.BasalMetabolicRateText
                                 ]
