@@ -216,19 +216,19 @@ module Library =
             let max = range |> Seq.max
 
         module DailyMacros =
-            type MacroPercentages = {
+            type Percentages = {
                 Protein: float<pct>
                 Carbs: float<pct>
                 Fat: float<pct>
             } with
-                static member internal Default : MacroPercentages =
+                static member internal Default : Percentages =
                     {
                         Protein = 34.0<pct>
                         Carbs = 33.0<pct>
                         Fat = 33.0<pct>
                     }
 
-                static member internal Create (protein: float<pct>, carbs: float<pct>, fat: float<pct>) : MacroPercentages =
+                static member internal Create (protein: float<pct>, carbs: float<pct>, fat: float<pct>) : Percentages =
                     {
                         Protein = protein
                         Carbs = carbs
@@ -236,7 +236,7 @@ module Library =
                     }
 
                 // Update protein macro percentage and adjust carbs, then, if necessary, fat accordingly.
-                member this.UpdateProtein (protein: float<pct>) : MacroPercentages=
+                member this.UpdateProtein (protein: float<pct>) : Percentages =
                     let clampPct = Float.clamp 0.0<pct> 100.0<pct>
 
                     let protein = clampPct protein
@@ -253,7 +253,7 @@ module Library =
                     }
 
                 /// Update carb macro percentage and adjust fat accordingly
-                member this.UpdateCarbs (carbs: float<pct>) : MacroPercentages =
+                member this.UpdateCarbs (carbs: float<pct>) : Percentages =
                     let clampPct = Float.clamp (0.0<pct>) (100.0<pct>)
                     let fat = this.Fat - (carbs - this.Carbs)
 
@@ -266,7 +266,7 @@ module Library =
         type DailyMacros = {
             BodyComposition: BodyComposition
             DailyActivityLevel: DailyActivityLevel
-            Percentages: DailyMacros.MacroPercentages
+            Percentages: DailyMacros.Percentages
         }  with
             member this.LeanMuscleMass : Mass =
                 this.BodyComposition.LeanMuscleMass
@@ -497,11 +497,11 @@ module Library =
                         Fat = 33.0
                     }
 
-                member this.Validate () : Result<DailyMacros.MacroPercentages, string> =
+                member this.Validate () : Result<DailyMacros.Percentages, string> =
                     match this.Protein, this.Carbs, this.Fat with
                     // all macronutrients provided, are valid, and sum to 100%
                     | ValidPercentage p, ValidPercentage c, ValidPercentage f when p + c + f = 100.0<pct> ->
-                        Ok <| DailyMacros.MacroPercentages.Create(protein = p, carbs = c, fat = f)
+                        Ok <| DailyMacros.Percentages.Create(protein = p, carbs = c, fat = f)
 
                     // all macronutrients are provided and valid but do not sum to 100%
                     | ValidPercentage p, ValidPercentage c, ValidPercentage f ->
@@ -910,7 +910,7 @@ module Library =
                         input.Percentages.Protein
                     | DisabledMacrosFields input ->
                         let defaultValue =
-                            DailyMacros.MacroPercentages.Default.Protein |> float
+                            DailyMacros.Percentages.Default.Protein |> float
 
                         option {
                             let! i = input
@@ -924,7 +924,7 @@ module Library =
                         input.Percentages.Carbs
                     | DisabledMacrosFields input ->
                         let defaultValue =
-                            DailyMacros.MacroPercentages.Default.Carbs |> float
+                            DailyMacros.Percentages.Default.Carbs |> float
 
                         option {
                             let! i = input
@@ -938,7 +938,7 @@ module Library =
                         input.Percentages.Fat
                     | DisabledMacrosFields input ->
                         let defaultValue =
-                            DailyMacros.MacroPercentages.Default.Fat |> float
+                            DailyMacros.Percentages.Default.Fat |> float
 
                         option {
                             let! i = input
