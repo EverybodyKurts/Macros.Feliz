@@ -170,7 +170,7 @@ module Library =
 
             /// Project body composition at current bodyfat % down to 6% bodyfat
             member this.Projections : BodyComposition seq =
-                seq { 6u<pct> .. 2u<pct> .. this.BodyfatPercentage}
+                seq { 6u<pct> .. 2u<pct> .. this.BodyfatPercentage }
                 |> Seq.sortDescending
                 |> Seq.map this.AtBodyFatPercentage
                 |> Seq.skipWhile (fun bodyComposition -> bodyComposition = this)
@@ -247,7 +247,7 @@ module Library =
 
                 // Update protein macro percentage and adjust carbs, then, if necessary, fat accordingly.
                 member this.UpdateProtein (protein: float<pct>) : MacroPercentages=
-                    let clampPct = Float.clamp (0.0<pct>) (100.0<pct>)
+                    let clampPct = Float.clamp 0.0<pct> 100.0<pct>
 
                     let protein = clampPct protein
                     let carb = protein - this.Protein
@@ -521,7 +521,7 @@ module Library =
                     | _ ->
                         Error $"Invalid percentages. Protein = {this.Protein}, Carbs = {this.Carbs}, Fat = {this.Fat} "
 
-                member this.UpdateProtein (protein: float) : Percentages=
+                member this.UpdateProtein (protein: float) : Percentages =
                     let clampPct value = Math.Clamp(value, 0.0, 100.0)
 
                     let protein = clampPct protein
