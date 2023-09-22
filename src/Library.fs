@@ -16,6 +16,7 @@ module Library =
         let kgPerLb : float<kg/lb> = 1.0 / lbPerKg
 
         module Float =
+            /// See if a float with a generic unit of measure is between a min and max value.
             let isBetween (min: float<'u>) (max: float<'u>) (value: float<'u>) : bool =
                 min <= value && value <= max
 
@@ -56,28 +57,41 @@ module Library =
                 | Kg kg, Lb lb -> Kg <| kg - (lb * kgPerLb)
 
             /// Multiply a mass by a number
+            ///
+            ///     (Lb 5.0<lb>) * 2.0 = (Lb 10.0<lb>)
+            ///     (Kg 5.0<kg>) * 2.0 = (Kg 10.0<kg>)
             static member (*) (mass: Mass, num: float) : Mass =
                 match mass with
                 | Lb lb -> Lb <| lb * num
                 | Kg kg -> Kg <| kg * num
 
             /// Convert the mass to pounds
+            ///
+            ///    (Lb 5.0<lb>).ToLb() = (Lb 5.0<lb>)
+            ///    (Kg 5.0<kg>).ToLb() = (Lb 11.02<lb>)
             member this.ToLb () : Mass =
                 match this with
                 | Kg kg -> Lb <| kg * lbPerKg
                 | _ -> this
 
             /// Convert the mass to kilograms
+            ///
+            ///    (Lb 5.0<lb>).ToKg() = (Kg 2.27<kg>)
+            ///    (Kg 5.0<kg>).ToKg() = (Kg 5.0<kg>)
             member this.ToKg () : Mass =
                 match this with
                 | Lb lb -> Kg <| lb * kgPerLb
                 | _ -> this
 
             /// Create a mass whose unit of measure is lbs
+            ///
+            ///     Mass.CreateLb 5.0 = (Lb 5.0<lb>)
             static member CreateLb (amount: float) : Mass =
                 Lb <| amount * 1.0<lb>
 
             /// Create a mass whose unit of measure is kgs
+            ///
+            ///     Mass.CreateKg 5.0 = (Kg 5.0<kg>)
             static member CreateKg (amount: float) : Mass =
                 Kg <| amount * 1.0<kg>
 
@@ -91,6 +105,8 @@ module Library =
                 | Lb lb -> $"{Math.Round(float lb, 2)} lb"
 
             /// Convert the mass to the kg unit of measure
+            ///
+            ///     (Lb 5.0<lb>).KgMeasure = 2.27<kg>
             member this.KgMeasure : float<kg> =
                 match this.ToKg() with
                 | Kg kg -> kg
@@ -105,6 +121,12 @@ module Library =
         let basalMetabolicRate (leanBodyMass: float<kg>) : float<kcal> =
             370.0<kcal> + (21.6<kcal/kg> * leanBodyMass)
 
+        /// <summary>
+        /// A person's body composition, which is composed of their body weight and their bodyfat percentage.
+        /// </summary>
+        /// <param name="BodyWeight">The person's body weight</param>
+        /// <param name="BodyfatPercentage">The person's bodyfat percentage</param>
+        /// <returns>The person's body composition</returns>
         type BodyComposition = {
             BodyWeight: Mass
             BodyfatPercentage: uint<pct>
@@ -126,9 +148,11 @@ module Library =
                 this.LeanMuscleMass.KgMeasure
                 |> basalMetabolicRate
 
+            /// A text representation of the basal metabolic rate
             member this.BasalMetabolicRateText : string =
                 $"{Math.Round(float this.BasalMetabolicRate, 2)} kcal"
 
+            /// The bodyfat % as a string
             member this.BodyfatPercentageText : string =
                 $"{this.BodyfatPercentage} pct"
 
@@ -151,12 +175,14 @@ module Library =
                 |> Seq.map this.AtBodyFatPercentage
                 |> Seq.skipWhile (fun bodyComposition -> bodyComposition = this)
 
+        /// A person's estimated daily activity level
         type DailyActivityLevel =
             | Sedentary
             | ``Mostly Sedentary``
             | ``Lightly Active``
             | ``Highly Active``
 
+            /// The multiplier used in conjunction with a person's basal metabolic rate to find out how many calories they burn daily
             member this.Multiplier : float =
                 match this with
                 | Sedentary -> 1.15
@@ -193,6 +219,7 @@ module Library =
                 $"{amount} pct"
 
         module ProteinGramsPerKgLeanBodyMass =
+            /// The "recommended" range of protein grams per kilogram of lean body mass
             let range = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
             let average = range |> Seq.average
             let min = range |> Seq.min
@@ -218,6 +245,7 @@ module Library =
                         Fat = fat
                     }
 
+                // Update protein macro percentage and adjust carbs, then, if necessary, fat accordingly.
                 member this.UpdateProtein (protein: float<pct>) : MacroPercentages=
                     let clampPct = Float.clamp (0.0<pct>) (100.0<pct>)
 
@@ -234,6 +262,7 @@ module Library =
                         Fat = clampPct fat
                     }
 
+                /// Update carb macro percentage and adjust fat accordingly
                 member this.UpdateCarbs (carbs: float<pct>) : MacroPercentages =
                     let clampPct = Float.clamp (0.0<pct>) (100.0<pct>)
                     let fat = carbs - this.Carbs
