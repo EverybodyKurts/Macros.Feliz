@@ -240,7 +240,7 @@ module Library =
                     let clampPct = Float.clamp 0.0<pct> 100.0<pct>
 
                     let protein = clampPct protein
-                    let carb = protein - this.Protein
+                    let carb = this.Carbs - (protein - this.Protein)
 
                     let fat =
                         if carb < 0.0<pct> then this.Fat + carb
@@ -255,7 +255,7 @@ module Library =
                 /// Update carb macro percentage and adjust fat accordingly
                 member this.UpdateCarbs (carbs: float<pct>) : MacroPercentages =
                     let clampPct = Float.clamp (0.0<pct>) (100.0<pct>)
-                    let fat = carbs - this.Carbs
+                    let fat = this.Fat - (carbs - this.Carbs)
 
 
                     { this with
