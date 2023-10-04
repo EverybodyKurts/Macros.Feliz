@@ -210,12 +210,10 @@ module Library =
 
         module ProteinGramsPerKgLeanBodyMass =
             /// The "recommended" range of protein grams per kilogram of lean body mass
-            let range = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
-            let average = range |> Seq.average
-            let min = range |> Seq.min
-            let max = range |> Seq.max
+            let range : float<g/kg> seq = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
 
         module DailyMacros =
+            /// The daily macro percentage breakdown between protein, carbs, & fat, totalling 100%.
             type Percentages = {
                 Protein: float<pct>
                 Carbs: float<pct>
@@ -235,34 +233,7 @@ module Library =
                         Fat = fat
                     }
 
-                // Update protein macro percentage and adjust carbs, then, if necessary, fat accordingly.
-                member this.UpdateProtein (protein: float<pct>) : Percentages =
-                    let clampPct = Float.clamp 0.0<pct> 100.0<pct>
-
-                    let protein = clampPct protein
-                    let carb = this.Carbs - (protein - this.Protein)
-
-                    let fat =
-                        if carb < 0.0<pct> then this.Fat + carb
-                        else this.Fat
-
-                    { this with
-                        Protein = protein
-                        Carbs = clampPct carb
-                        Fat = clampPct fat
-                    }
-
-                /// Update carb macro percentage and adjust fat accordingly
-                member this.UpdateCarbs (carbs: float<pct>) : Percentages =
-                    let clampPct = Float.clamp (0.0<pct>) (100.0<pct>)
-                    let fat = this.Fat - (carbs - this.Carbs)
-
-
-                    { this with
-                        Carbs = clampPct carbs
-                        Fat = clampPct fat
-                    }
-
+        /// A person's daily macros, based off their body composition, daily activit level, and daily macro percentages.
         type DailyMacros = {
             BodyComposition: BodyComposition
             DailyActivityLevel: DailyActivityLevel
@@ -274,9 +245,11 @@ module Library =
             member this.BodyWeight : Mass =
                 this.BodyComposition.BodyWeight
 
+            /// Calculate the total # of calories the person burns daily based on their body composition & daily activity level
             member this.TotalCalories : float<kcal> =
                 this.DailyActivityLevel.Multiplier * this.BodyComposition.BasalMetabolicRate
 
+            /// The person's daily protein intake in grams, calories, and macro percentage
             member this.Protein : DailyMacronutrient =
                 let decimal = (this.Percentages.Protein |> float) / 100.0
                 let calories = this.TotalCalories * decimal
@@ -288,18 +261,23 @@ module Library =
                     Percentage = this.Percentages.Protein
                 }
 
+            /// The person's protein grams per kg of lean body mass. Some nutrition sources (on the internet) use this ratio to calculate protein intake.
             member this.ProteinGramsPerKgLeanBodyMass : float<g/kg> =
                 this.Protein.Grams / this.LeanMuscleMass.KgMeasure
 
+            /// The person's protein grams per kg of body weight. Some nutrition sources (on the internet) use this ratio calculate protein intake.
             member this.ProteinGramsPerKgBodyWeight : float<g/kg> =
                 this.Protein.Grams / this.BodyWeight.KgMeasure
 
+            /// The person's carb grams per kg of lean body mass. Some nutrition sources (on the internet) use this ratio to calculate carb intake.
             member this.CarbGramsPerKgLeanBodyMass : float<g/kg> =
                 this.Carbs.Grams / this.LeanMuscleMass.KgMeasure
 
+            /// The person's carb grams per kg of body weight. Some nutrition sources (on the internet) use this ratio to calculate carb intake.
             member this.CarbGramsPerKgBodyWeight : float<g/kg> =
                 this.Carbs.Grams / this.BodyWeight.KgMeasure
 
+            /// The person's carb intake in grams, calories, and macro percentage
             member this.Carbs: DailyMacronutrient =
                 let decimal = (this.Percentages.Carbs |> float) / 100.0
                 let calories = this.TotalCalories * decimal
@@ -311,6 +289,7 @@ module Library =
                     Percentage = this.Percentages.Carbs
                 }
 
+            /// The person's fat intake in grams, calories, and macro percentage
             member this.Fat: DailyMacronutrient =
                 let decimal = (this.Percentages.Fat |> float) / 100.0
                 let calories = this.TotalCalories * decimal
@@ -322,15 +301,13 @@ module Library =
                     Percentage = this.Percentages.Fat
                 }
 
+            /// Calculate the person's daily macros at a specified bodyfat percentage. This is useful for projecting macros at lower bodyfat percentages.
             member this.AtBodyFatPercentage (bodyFatPercentage: uint<pct>) : DailyMacros =
                 let bodyComposition = this.BodyComposition.AtBodyFatPercentage bodyFatPercentage
 
-                {
+                { this with
                     BodyComposition = bodyComposition
-                    DailyActivityLevel = this.DailyActivityLevel
-                    Percentages = this.Percentages
                 }
-
 
     /// Handles user input that is not yet validated
     module Input =
@@ -356,7 +333,7 @@ module Library =
             Amount: float option
             Unit: WeightUnit
         } with
-            static member Create(weight: Domain.Mass) : Weight =
+            static member Create (weight: Domain.Mass) : Weight =
                 match weight with
                 | Mass.Kg kg ->
                     {
@@ -383,13 +360,15 @@ module Library =
                 | Some _, _ -> Error "Weight amount must be >= 0"
                 | None, _ -> Error "Weight amount must be present"
 
-            /// Convert body weight to kg
+            /// Convert body weight to kg. If the body weight is a valid amount, it will be converted to kg.
+            /// If the body weight is not a valid amount, the unit will be set to kg.
             member this.ToKg () : Weight =
                 match this.Validate () with
                 | Ok weight -> weight.ToKg () |> Weight.Create
                 | Error _ -> { this with Unit = Kg }
 
-            /// Convert bodyweight to lb
+            /// Convert bodyweight to lb. If the body weight is a valid amount, it will be converted to lb.
+            /// If the body weight is not a valid amount, the unit will be set to lb.
             member this.ToLb () : Weight =
                 match this.Validate () with
                 | Ok weight -> weight.ToLb () |> Weight.Create
@@ -405,17 +384,15 @@ module Library =
                     BodyfatPercentage = None
                 }
 
-            static member Create(bodyComposition: Domain.BodyComposition) : BodyComposition =
+            static member Create (bodyComposition: Domain.BodyComposition) : BodyComposition =
                 {
                     Weight = Weight.Create bodyComposition.BodyWeight
                     BodyfatPercentage = Some <| int bodyComposition.BodyfatPercentage
                 }
 
             member private this.ValidatePercentage() : Result<uint<pct>, string> =
-                let bodyfatPercentages = [ 0 .. 100 ]
-
                 match this.BodyfatPercentage with
-                | Some bfPct when bodyfatPercentages |> List.contains bfPct ->
+                | Some bfPct when 0 <= bfPct && bfPct <= 100 ->
                     Ok <| (uint bfPct) * 1u<pct>
                 | Some _ -> Error "Bodyfat % must be betwen 0 and 100"
                 | None -> Error "Bodyfat % must be present"
@@ -451,17 +428,6 @@ module Library =
 
             member this.UpdateBodyfatPercentage (percentage: int) : BodyComposition =
                 { this with BodyfatPercentage = Some percentage }
-
-        module ProteinGramsPerKgLeanBodyMass =
-            let validate (proteinGrams: float) : Result<float<g/kg>,string> =
-                let p = proteinGrams * 1.0<g/kg>
-                let minProtein = ProteinGramsPerKgLeanBodyMass.min
-                let maxProtein = ProteinGramsPerKgLeanBodyMass.max
-
-                if Float.isBetween minProtein maxProtein p then
-                    Ok p
-                else
-                    Error $"Protein grams must be between {minProtein} && {maxProtein}"
 
         module DailyActivityLevel =
             let tryCreate (input: string) : Domain.DailyActivityLevel option =
@@ -510,6 +476,7 @@ module Library =
                     // any other case, error out
                     | _ ->
                         Error $"Invalid percentages. Protein = {this.Protein}, Carbs = {this.Carbs}, Fat = {this.Fat} "
+
 
                 member this.UpdateProtein (protein: float) : Percentages =
                     let clampPct value = Math.Clamp(value, 0.0, 100.0)
@@ -619,9 +586,6 @@ module Library =
                     match this.Status with
                     | Enabled _ -> true
                     | _ -> false
-
-                member this.IsDisabled : bool =
-                    not this.IsEnabled
 
                 member private this.TryEventHandlers : EventHandlers option =
                     match this.Status with
@@ -1184,9 +1148,6 @@ module Library =
                     BodyComposition = bodyComposition
                     DailyMacros = dailyMacros
                 }
-
-            member this.Enabled : bool =
-                this.BodyComposition.IsSome
 
             member private this.LmmText : string =
                 option {
