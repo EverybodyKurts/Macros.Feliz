@@ -156,7 +156,7 @@ module Calculator =
                     return dm.AtBodyFatPercentage(bodyfatPct)
                 }
 
-    let init() = BodyCompositionStep BodyComposition.Default, Cmd.none
+    let init () = BodyCompositionStep BodyComposition.Default, Cmd.none
 
     let update (msg: Msg) (state: State) : State * Cmd<'a> =
         match msg, state with
@@ -201,30 +201,9 @@ module Calculator =
                     DailyMacros.view(dailyMacros, dmDispatch)
                 ]
 
-        let smallerBfPct =
-            option {
-                let! bfPct = form.TryBodyfatPercentage
-                let smallerBfPct =  bfPct - 2u<pct>
-
-                return! form.TryBodyComposition (smallerBfPct)
-            }
-
-        let smallerDailyMacros =
-            option {
-                let! bfPct = form.TryBodyfatPercentage
-                let smallerBfPct =  bfPct - 2u<pct>
-
-                return! form.TryDailyMacros (smallerBfPct)
-            }
-
         let results = Html.CalculatorResults.Create(
             ?bodyComposition = form.TryBodyComposition (),
             ?dailyMacros = form.TryDailyMacros ()
-        )
-
-        let smallerResults = Html.CalculatorResults.Create(
-            ?bodyComposition = smallerBfPct,
-            ?dailyMacros = smallerDailyMacros
         )
 
         fluidContainer [
@@ -233,11 +212,6 @@ module Calculator =
                 col [
                     results.BodyCompositionCard
                     results.DailyMacrosCard
-                ]
-
-                col [
-                    smallerResults.BodyCompositionCard
-                    smallerResults.DailyMacrosCard
                 ]
             ]
         ]
