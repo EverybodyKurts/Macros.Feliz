@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/vscode/devcontainers/dotnet:7.0-bullseye
+FROM mcr.microsoft.com/vscode/devcontainers/dotnet:8.0-bookworm-slim
 
 ARG USER='vscode'
 ARG WORKDIR='/app'
@@ -23,5 +23,7 @@ RUN npm install -g yarn && \
 COPY --chown=${USER} . ${WORKDIR}
 
 ENTRYPOINT ["docker-entrypoint.sh"]
+
+EXPOSE 5173
 
 CMD ["yarn", "start"]
