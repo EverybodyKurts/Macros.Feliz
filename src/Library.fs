@@ -447,12 +447,7 @@ module Library =
 
             /// Update the body composition weight amount
             member this.UpdateWeightAmount (amount: float) : BodyComposition =
-                let weight = {
-                    this.Weight with
-                        Amount = Some amount
-                }
-
-                { this with Weight = weight }
+                { this with BodyComposition.Weight.Amount = Some amount }
 
             member this.UpdateBodyfatPercentage (percentage: int) : BodyComposition =
                 { this with BodyfatPercentage = Some percentage }
@@ -824,8 +819,8 @@ module Library =
 
         module DailyMacronutrient =
             let table (dailyMacronutrient: DailyMacronutrient option) : ReactElement =
-                let caloriesText = dailyMacronutrient |> Option.map (fun dm -> dm.CaloriesText) |> Option.defaultValue ""
-                let gramsText = dailyMacronutrient |> Option.map (fun dm -> dm.GramsText) |> Option.defaultValue ""
+                let caloriesText = dailyMacronutrient |> Option.map _.CaloriesText |> Option.defaultValue ""
+                let gramsText = dailyMacronutrient |> Option.map _.GramsText |> Option.defaultValue ""
 
                 Html.table [
                     Html.tr [
@@ -1236,25 +1231,13 @@ module Library =
                 ]
 
             member private this.TryProteinMacros : DailyMacronutrient option =
-                option {
-                    let! dm = this.DailyMacros
-
-                    return dm.Protein
-                }
+                this.DailyMacros |> Option.map _.Protein
 
             member private this.TryCarbMacros : DailyMacronutrient option =
-                option {
-                    let! dm = this.DailyMacros
-
-                    return dm.Carbs
-                }
+                this.DailyMacros |> Option.map _.Carbs
 
             member private this.TryFatMacros : DailyMacronutrient option =
-                option {
-                    let! dm = this.DailyMacros
-
-                    return dm.Fat
-                }
+                this.DailyMacros |> Option.map _.Fat
 
             member private this.ProteinGramsPerKgBodyweightText : string =
                 option {
