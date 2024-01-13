@@ -1,5 +1,6 @@
 {
     "private": true,
+    "type": "module",
     "scripts": {
         "start": "dotnet tool restore && dotnet fable watch src --run npx vite",
         "build": "dotnet tool restore && dotnet fable src --run vite build --emptyOutDir",
