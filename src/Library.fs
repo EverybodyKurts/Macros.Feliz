@@ -47,8 +47,8 @@ module Library =
 
             /// Subtract one mass from another
             ///
-            ///     (Lb 5.0<lb>) - (Lb 3.0<lb>) = (Lb 2.0<lb>)
-            ///     (Kg 5.0<kg>) - (Kg 3.0<kg>) = (Kg 2.0<kg>)
+            ///    (Lb 5.0<lb>) - (Lb 3.0<lb>) = (Lb 2.0<lb>)
+            ///    (Kg 5.0<kg>) - (Kg 3.0<kg>) = (Kg 2.0<kg>)
             static member (-) (mass1: Mass, mass2: Mass) : Mass =
                 match mass1, mass2 with
                 | Lb lb1, Lb lb2 -> Lb <| lb1 - lb2
@@ -58,8 +58,8 @@ module Library =
 
             /// Multiply a mass by a number
             ///
-            ///     (Lb 5.0<lb>) * 2.0 = (Lb 10.0<lb>)
-            ///     (Kg 5.0<kg>) * 2.0 = (Kg 10.0<kg>)
+            ///    (Lb 5.0<lb>) * 2.0 = (Lb 10.0<lb>)
+            ///    (Kg 5.0<kg>) * 2.0 = (Kg 10.0<kg>)
             static member (*) (mass: Mass, num: float) : Mass =
                 match mass with
                 | Lb lb -> Lb <| lb * num
@@ -85,20 +85,20 @@ module Library =
 
             /// Create a mass whose unit of measure is lbs
             ///
-            ///     Mass.CreateLb 5.0 = (Lb 5.0<lb>)
+            ///    Mass.CreateLb 5.0 = (Lb 5.0<lb>)
             static member CreateLb (amount: float) : Mass =
                 Lb <| amount * 1.0<lb>
 
             /// Create a mass whose unit of measure is kgs
             ///
-            ///     Mass.CreateKg 5.0 = (Kg 5.0<kg>)
+            ///    Mass.CreateKg 5.0 = (Kg 5.0<kg>)
             static member CreateKg (amount: float) : Mass =
                 Kg <| amount * 1.0<kg>
 
             /// Represent the mass as a string
             ///
-            ///     (Lb 5.0<lb>).Text = "5.0 lb"
-            ///     (Kg 5.0<kg>).Text = "5.0 kg"
+            ///    (Lb 5.0<lb>).Text = "5.0 lb"
+            ///    (Kg 5.0<kg>).Text = "5.0 kg"
             member this.Text : string =
                 match this with
                 | Kg kg -> $"{Math.Round(float kg, 2)} kg"
@@ -106,7 +106,7 @@ module Library =
 
             /// Convert the mass to the kg unit of measure
             ///
-            ///     (Lb 5.0<lb>).KgMeasure = 2.27<kg>
+            ///    (Lb 5.0<lb>).KgMeasure = 2.27<kg>
             member this.KgMeasure : float<kg> =
                 match this.ToKg() with
                 | Kg kg -> kg
@@ -115,7 +115,6 @@ module Library =
         /// <summary>
         /// Calculate basal metabolic rate with the Katch-McArdle formula
         /// </summary>
-        ///
         /// <param name="leanBodyMass">Lean body mass in kg</param>
         /// <returns>Basal metabolic rate in kcal</returns>
         let basalMetabolicRate (leanBodyMass: float<kg>) : float<kcal> =
@@ -361,76 +360,76 @@ module Library =
                 | Some _, _ -> Error "Weight amount must be >= 0"
                 | None, _ -> Error "Weight amount must be present"
 
-            // /// Convert body weight to kg.
-            // /// - If the body weight is a valid amount, it will be converted to kg.
-            // /// - If the body weight is not a valid amount, the unit will be set to kg.
-            // member this.ToKg () : Weight =
-            //     match this.Validate () with
-            //     | Ok weight -> weight.ToKg () |> Weight.Create
-            //     | Error _ -> { this with Unit = Kg }
+            /// Convert body weight to kg.
+            /// - If the body weight is a valid amount, it will be converted to kg.
+            /// - If the body weight is not a valid amount, the unit will be set to kg.
+            member this.ToKg () : Weight =
+                match this.Validate () with
+                | Ok weight -> weight.ToKg () |> Weight.Create
+                | Error _ -> { this with Unit = Kg }
 
-            // /// Convert bodyweight to lb.
-            // /// - If the body weight is a valid amount, it will be converted to lb.
-            // /// - If the body weight is not a valid amount, the unit will be set to lb.
-            // member this.ToLb () : Weight =
-            //     match this.Validate () with
-            //     | Ok weight -> weight.ToLb () |> Weight.Create
-            //     | Error _ -> { this with Unit = Lb }
+            /// Convert bodyweight to lb.
+            /// - If the body weight is a valid amount, it will be converted to lb.
+            /// - If the body weight is not a valid amount, the unit will be set to lb.
+            member this.ToLb () : Weight =
+                match this.Validate () with
+                | Ok weight -> weight.ToLb () |> Weight.Create
+                | Error _ -> { this with Unit = Lb }
 
         type BodyComposition = {
             Weight: Weight
             BodyfatPercentage: int option
-        }
-        //     static member Default : BodyComposition =
-        //         {
-        //             Weight = Weight.Default
-        //             BodyfatPercentage = None
-        //         }
+        } with
+            static member Default : BodyComposition =
+                {
+                    Weight = Weight.Default
+                    BodyfatPercentage = None
+                }
 
-        //     static member Create (bodyComposition: Domain.BodyComposition) : BodyComposition =
-        //         {
-        //             Weight = Weight.Create bodyComposition.BodyWeight
-        //             BodyfatPercentage = Some <| int bodyComposition.BodyfatPercentage
-        //         }
+            static member Create (bodyComposition: Domain.BodyComposition) : BodyComposition =
+                {
+                    Weight = Weight.Create bodyComposition.BodyWeight
+                    BodyfatPercentage = Some <| int bodyComposition.BodyfatPercentage
+                }
 
-        //     member private this.ValidatePercentage() : Result<uint<pct>, string> =
-        //         match this.BodyfatPercentage with
-        //         | Some bfPct when 0 <= bfPct && bfPct <= 100 ->
-        //             Ok <| (uint bfPct) * 1u<pct>
-        //         | Some _ -> Error "Bodyfat % must be betwen 0 and 100"
-        //         | None -> Error "Bodyfat % must be present"
+            member private this.ValidatePercentage() : Result<uint<pct>, string> =
+                match this.BodyfatPercentage with
+                | Some bfPct when 0 <= bfPct && bfPct <= 100 ->
+                    Ok <| (uint bfPct) * 1u<pct>
+                | Some _ -> Error "Bodyfat % must be betwen 0 and 100"
+                | None -> Error "Bodyfat % must be present"
 
-        //     member this.Validate() : Validation<Domain.BodyComposition, string> =
-        //         validation {
-        //             let! weight = this.Weight.Validate()
-        //             and! bfPct = this.ValidatePercentage()
+            member this.Validate() : Validation<Domain.BodyComposition, string> =
+                validation {
+                    let! weight = this.Weight.Validate()
+                    and! bfPct = this.ValidatePercentage()
 
-        //             return {
-        //                 BodyWeight = weight
-        //                 BodyfatPercentage = bfPct
-        //             }
-        //         }
+                    return {
+                        BodyWeight = weight
+                        BodyfatPercentage = bfPct
+                    }
+                }
 
-        //     member this.ToKg() : BodyComposition =
-        //         { this with
-        //             Weight = this.Weight.ToKg()
-        //         }
+            member this.ToKg() : BodyComposition =
+                { this with
+                    Weight = this.Weight.ToKg()
+                }
 
-        //     member this.ToLb() : BodyComposition =
-        //         { this with
-        //             Weight = this.Weight.ToLb()
-        //         }
+            member this.ToLb() : BodyComposition =
+                { this with
+                    Weight = this.Weight.ToLb()
+                }
 
-        //     member this.UpdateWeightAmount (amount: float) : BodyComposition =
-        //         let weight = {
-        //             this.Weight with
-        //                 Amount = Some amount
-        //         }
+            member this.UpdateWeightAmount (amount: float) : BodyComposition =
+                let weight = {
+                    this.Weight with
+                        Amount = Some amount
+                }
 
-        //         { this with Weight = weight }
+                { this with Weight = weight }
 
-        //     member this.UpdateBodyfatPercentage (percentage: int) : BodyComposition =
-        //         { this with BodyfatPercentage = Some percentage }
+            member this.UpdateBodyfatPercentage (percentage: int) : BodyComposition =
+                { this with BodyfatPercentage = Some percentage }
 
         module DailyActivityLevel =
             let tryCreate (input: string) : Domain.DailyActivityLevel option =
@@ -479,7 +478,6 @@ module Library =
                     // any other case, error out
                     | _ ->
                         Error $"Invalid percentages. Protein = {this.Protein}, Carbs = {this.Carbs}, Fat = {this.Fat} "
-
 
                 member this.UpdateProtein (protein: float) : Percentages =
                     let clampPct value = Math.Clamp(value, 0.0, 100.0)
