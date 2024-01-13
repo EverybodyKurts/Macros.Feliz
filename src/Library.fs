@@ -628,6 +628,7 @@ module Library =
                         prop.className "form-control"
                         prop.placeholder "How much do you weigh?"
                         prop.disabled (not this.IsEnabled)
+                        prop.autoFocus true
                     ]
 
                     let valueProperty =
