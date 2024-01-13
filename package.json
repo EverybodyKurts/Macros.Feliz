@@ -4,7 +4,9 @@
     "scripts": {
         "start": "dotnet tool restore && dotnet fable watch src --run npx vite",
         "build": "dotnet tool restore && dotnet fable src --run vite build --emptyOutDir",
-        "clean": "dotnet fable clean src --yes"
+        "clean": "dotnet fable clean src --yes",
+        "deploy": "gh-pages -d dist"
+
     },
     "dependencies": {
         "bulma": "^0.9.4",
