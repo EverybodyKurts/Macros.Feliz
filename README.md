@@ -4,6 +4,9 @@ This is a macros calculator that determines a person's total daily calories and 
 
 I am writing / wrote this F# and Elmish to demonstrate the beauty of F# code, the simplicity of the Elm UI model, as well as provide an understandable example of onion-style architecture.
 
+## Development
+
+This repo makes extensive use of `vscode`'s [`devcontainers`](https://code.visualstudio.com/docs/devcontainers/containers) feature.
 
 ## Deployment
 
