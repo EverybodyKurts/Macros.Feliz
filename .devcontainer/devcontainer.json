@@ -19,7 +19,8 @@
                 "shardulm94.trailing-spaces",
                 "GitHub.copilot-nightly",
                 "GitHub.copilot-labs",
-                "ms-dotnettools.csdevkit"
+                "ms-dotnettools.csdevkit",
+                "ms-dotnettools.vscode-dotnet-pack"
             ]
         }
     },

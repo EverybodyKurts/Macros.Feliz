@@ -4,7 +4,7 @@
 
 #!fsharp
 
-#r "./src/bin/Debug/net7.0/App.dll"
+#r "./src/bin/Debug/net8.0/App.dll"
 
 open App.Library
 
@@ -22,13 +22,3 @@ let bodyComposition = {
 }
 
 bodyComposition
-
-#!fsharp
-
-let dailyMacros = {
-  BodyComposition = bodyComposition
-  DailyActivityLevel = ``Mostly Sedentary``
-  ProteinGramsPerKgLeanBodyMass = ProteinGramsPerKgLeanBodyMass.average
-}
-
-dailyMacros
