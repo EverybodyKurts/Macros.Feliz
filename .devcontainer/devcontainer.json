@@ -18,7 +18,8 @@
                 "jeremyrajan.webpack",
                 "shardulm94.trailing-spaces",
                 "GitHub.copilot-nightly",
-                "GitHub.copilot-labs"
+                "GitHub.copilot-labs",
+                "ms-dotnettools.csdevkit"
             ]
         }
     },
@@ -30,7 +31,7 @@
     "forwardPorts": [5173],
 
     // Uncomment the next line to run commands after the container is created.
-    "postCreateCommand": "git config --global --add safe.directory /workspaces"
+    "postCreateCommand": "git config --global --add safe.directory /workspaces && bash docker-entrypoint.sh"
 
     // Configure tool-specific properties.
     // "customizations": {},
