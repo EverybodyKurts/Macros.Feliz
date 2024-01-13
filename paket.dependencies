@@ -1,11 +1,11 @@
 source https://api.nuget.org/v3/index.json
 
-nuget Feliz.Recharts ~> 4.1
-nuget Feliz.UseElmish ~> 2.4
+nuget Feliz.Recharts ~> 4.2
+nuget Feliz.UseElmish ~> 2.5
 nuget FSharp.Core ~> 7.0
 nuget Fable.DateFunctions ~> 3.9
 nuget Fable.Mocha ~> 2.16
-nuget Feliz ~> 2.4
+nuget Feliz ~> 2.7
 nuget Feliz.Router ~> 4.0
 nuget FSharp.Core.Fluent ~> 3.0
-nuget FsToolkit.ErrorHandling ~> 4.6
+nuget FsToolkit.ErrorHandling ~> 4.15
