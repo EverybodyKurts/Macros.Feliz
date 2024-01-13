@@ -2,7 +2,6 @@ namespace App
 
 module Library =
     open System
-    open FSharp.Core.Fluent
 
     [<AutoOpen>]
     module UnitsOfMeasure =
@@ -38,7 +37,8 @@ module Library =
 
     /// This module contains the app's business logic. It is at the core of the onion architecture.
     /// Once data has reached this module, it is in a valid state. This module doesn't contain logic
-    /// for retrieving data, parsing data, or validating data.
+    /// for retrieving data, parsing data, or validating data. That's handled by modules that wrap around
+    /// this one.
     [<AutoOpen>]
     module Domain =
         type Mass =
@@ -151,11 +151,13 @@ module Library =
             member this.BasalMetabolicRateText : string =
                 $"{Math.Round(float this.BasalMetabolicRate, 2)} kcal"
 
-            /// The bodyfat % as a string
+            /// The body fat % as a string
             member this.BodyfatPercentageText : string =
                 $"{this.BodyfatPercentage} pct"
 
-            /// Compute body composition at a certain bodyfat % with the current lean muscle mass
+            /// Compute body composition at a certain bodyfat % with the current lean muscle mass.
+            ///
+            ///    { BodyWeight = 100.0<kg>; BodyfatPercentage = 20u<pct> }.AtBodyFatPercentage 10u<pct> = { BodyWeight = 88.0<kg>; BodyfatPercentage = 10u<pct> }
             member this.AtBodyFatPercentage (bodyFatPercentage: uint<pct>) : BodyComposition =
                 let bfPct = (float bodyFatPercentage) * 1.0<pct>
 
@@ -212,12 +214,13 @@ module Library =
             let range : float<g/kg> seq = seq { 1.6<g/kg> .. 0.1<g/kg> .. 2.2<g/kg> }
 
         module DailyMacros =
-            /// The daily macro percentage breakdown between protein, carbs, & fat, totalling 100%.
+            /// The daily macro percentage breakdown between protein, carbs, & fat, totaling 100%.
             type Percentages = {
                 Protein: float<pct>
                 Carbs: float<pct>
                 Fat: float<pct>
             } with
+                /// The default daily macros. It gives a slight edge to protein.
                 static member internal Default : Percentages =
                     {
                         Protein = 34.0<pct>
@@ -225,12 +228,19 @@ module Library =
                         Fat = 33.0<pct>
                     }
 
+                /// Create a daily macro percentage breakdown between protein, carbs, & fat, totaling 100%.
+                /// This static method is accessibly only within the DailyMacros module.
                 static member internal Create (protein: float<pct>, carbs: float<pct>, fat: float<pct>) : Percentages =
-                    {
-                        Protein = protein
-                        Carbs = carbs
-                        Fat = fat
-                    }
+                    let total = protein + carbs + fat
+
+                    if total <> 100.0<pct> then
+                        raise <| ArgumentException $"Protein, carbs, & fat percentages must sum to 100 pct. Protein = {protein}, Carbs = {carbs}, Fat = {fat}"
+                    else
+                        {
+                            Protein = protein
+                            Carbs = carbs
+                            Fat = fat
+                        }
 
         /// A person's daily macros, based off their body composition, daily activit level, and daily macro percentages.
         type DailyMacros = {
@@ -318,11 +328,13 @@ module Library =
             | Kg
             | Lb
 
+            /// Whether or not the selected weight unit is kg
             member this.IsKilogram : bool =
                 match this with
                 | Kg -> true
                 | _ -> false
 
+            /// Whether or not the selected weight unit is lb
             member this.IsPound : bool =
                 match this with
                 | Lb -> true
@@ -333,6 +345,7 @@ module Library =
             Amount: float option
             Unit: WeightUnit
         } with
+            /// Create a body weight input based on validated body weight
             static member Create (weight: Domain.Mass) : Weight =
                 match weight with
                 | Mass.Kg kg ->
@@ -346,6 +359,7 @@ module Library =
                         Unit = Lb
                     }
 
+            /// The default body weight input. The amount is absent and the unit of measure is lb.
             static member Default : Weight =
                 {
                     Amount = None
@@ -376,29 +390,38 @@ module Library =
                 | Ok weight -> weight.ToLb () |> Weight.Create
                 | Error _ -> { this with Unit = Lb }
 
+        /// Body composition input. When the user first loads the page, the bodyfat percentage is absent.
         type BodyComposition = {
             Weight: Weight
             BodyfatPercentage: int option
         } with
+            /// The default body composition input. The bodyfat percentage is absent.
             static member Default : BodyComposition =
                 {
                     Weight = Weight.Default
                     BodyfatPercentage = None
                 }
 
+            /// Create a body composition input based on validated body composition
             static member Create (bodyComposition: Domain.BodyComposition) : BodyComposition =
                 {
                     Weight = Weight.Create bodyComposition.BodyWeight
                     BodyfatPercentage = Some <| int bodyComposition.BodyfatPercentage
                 }
 
+            /// <summary>
+            /// Validate the bodyfat percentage. It must be between 0% and 100%.
+            /// </summary>
+            /// <returns>A result that contains either the validated bodyfat percentage or an error describing why the input was invalid.</returns>
             member private this.ValidatePercentage() : Result<uint<pct>, string> =
                 match this.BodyfatPercentage with
-                | Some bfPct when 0 <= bfPct && bfPct <= 100 ->
-                    Ok <| (uint bfPct) * 1u<pct>
+                | Some bodyfatPercentage when 0 <= bodyfatPercentage && bodyfatPercentage <= 100 ->
+                    Ok <| (uint bodyfatPercentage) * 1u<pct>
                 | Some _ -> Error "Bodyfat % must be betwen 0 and 100"
                 | None -> Error "Bodyfat % must be present"
 
+            /// Validate the body composition input. The bodyfat percentage must be between 0% and 100%.
+            /// If the bodyfat percentage is valid, the body composition will be validated.
             member this.Validate() : Validation<Domain.BodyComposition, string> =
                 validation {
                     let! weight = this.Weight.Validate()
@@ -410,16 +433,19 @@ module Library =
                     }
                 }
 
+            /// Convert the body composition weight to kg.
             member this.ToKg() : BodyComposition =
                 { this with
                     Weight = this.Weight.ToKg()
                 }
 
+            /// Convert the body composition weight to lb.
             member this.ToLb() : BodyComposition =
                 { this with
                     Weight = this.Weight.ToLb()
                 }
 
+            /// Update the body composition weight amount
             member this.UpdateWeightAmount (amount: float) : BodyComposition =
                 let weight = {
                     this.Weight with
