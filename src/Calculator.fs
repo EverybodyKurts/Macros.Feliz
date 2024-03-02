@@ -1,7 +1,5 @@
 namespace App
 
-open Browser
-open Browser.Dom
 open Feliz
 open Elmish
 open Feliz.UseElmish

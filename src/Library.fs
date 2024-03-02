@@ -596,6 +596,27 @@ module Library =
                     ]
                 ]
 
+        module DailyMacronutrients =
+            let kCalPieChart (input: {| protein: DailyMacronutrient; carbs: DailyMacronutrient; fat: DailyMacronutrient |}) : ReactElement =
+                let labels = [ "Protein"; "Carbs"; "Fat" ]
+
+                let values =
+                    [
+                        input.protein.Calories |> float
+                        input.carbs.Calories |> float
+                        input.fat.Calories |> float
+                    ]
+
+
+                Plotly.plot [
+                    plot.traces [
+                        traces.pie [
+                            pie.labels labels
+                            pie.values values
+                        ]
+                    ]
+                ]
+
     module Html =
         open FsToolkit.ErrorHandling
         open Feliz
@@ -1325,6 +1346,16 @@ module Library =
                 } |> Option.defaultValue ""
 
             member this.DailyMacrosCard : ReactElement =
+                let pieChart =
+                    option {
+                        let! dm = this.DailyMacros
+                        let protein = dm.Protein
+                        let carbs = dm.Carbs
+                        let fat = dm.Fat
+
+                        return Charts.DailyMacronutrients.kCalPieChart {| protein = protein; carbs = carbs; fat = fat |}
+                    } |> Option.defaultValue Html.none
+
                 Html.div [
                     prop.className "card mt-3"
                     prop.children [
@@ -1350,6 +1381,7 @@ module Library =
                                         DailyMacronutrient.headerTableRow "Fat" this.TryFatMacros
                                     ]
                                 ]
+                                pieChart
                             ]
                         ]
                     ]
