@@ -20,7 +20,8 @@
                 "GitHub.copilot-nightly",
                 "GitHub.copilot-labs",
                 "ms-dotnettools.csdevkit",
-                "ms-dotnettools.vscode-dotnet-pack"
+                "ms-dotnettools.vscode-dotnet-pack",
+                "github.vscode-github-actions"
             ]
         }
     },
