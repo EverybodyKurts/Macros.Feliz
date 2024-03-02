@@ -112,6 +112,20 @@ module Library =
                 | Kg kg -> kg
                 | _ -> invalidOp "Domain.Mass.KgMeasure threw an exception"
 
+            /// Convert the mass to the kg unit of measure
+            ///
+            ///    (Kg 5.0<kg>).LbMeasure = 11.02<lb>
+            member this.LbMeasure : float<lb> =
+                match this.ToLb() with
+                | Lb lb -> lb
+                | _ -> invalidOp "Domain.Mass.LbMeasure threw an exception"
+
+            /// Return true if the mass is in lb
+            member this.IsLbUnit : bool =
+                match this with
+                | Lb _ -> true
+                | _ -> false
+
         /// <summary>
         /// Calculate basal metabolic rate with the Katch-McArdle formula
         /// </summary>
@@ -552,6 +566,35 @@ module Library =
                     Percentages = percentages
                 }
 
+
+    module Charts =
+        open Feliz
+        open Feliz.Plotly
+
+        module BodyComposition =
+            let pieChart (bodyComposition: BodyComposition) : ReactElement =
+                let (labels, values) =
+                    if bodyComposition.BodyWeight.IsLbUnit then
+                        (
+                            [ "Fat (lb)"; "Lean Muscle Mass (lb)" ],
+                            [ bodyComposition.FatMass.LbMeasure |> float; bodyComposition.LeanMuscleMass.LbMeasure |> float]
+                        )
+
+
+                    else
+                        (
+                            [ "Fat (kg)"; "Lean Muscle Mass (kg)" ],
+                            [ bodyComposition.FatMass.KgMeasure |> float; bodyComposition.LeanMuscleMass.KgMeasure |> float]
+                        )
+
+                Plotly.plot [
+                    plot.traces [
+                        traces.pie [
+                            pie.labels labels
+                            pie.values values
+                        ]
+                    ]
+                ]
 
     module Html =
         open FsToolkit.ErrorHandling
@@ -1209,6 +1252,13 @@ module Library =
                         return $"Body Composition @ {bc.BodyfatPercentageText}"
                     } |> Option.defaultValue "Body Composition"
 
+                let bodyCompositionPieChart =
+                    option {
+                        let! bc = this.BodyComposition
+
+                        return Charts.BodyComposition.pieChart bc
+                    } |> Option.defaultValue Html.none
+
                 Html.div [
                     prop.className "card mt-3"
                     prop.children [
@@ -1226,6 +1276,8 @@ module Library =
                                     CalculatorResults.tableRow "Fat Mass" this.FatMassText
                                     CalculatorResults.tableRow "Resting Metabolic Rate" this.BasalMetabolicRateText
                                 ]
+
+                                bodyCompositionPieChart
                             ]
                         ]
                     ]
