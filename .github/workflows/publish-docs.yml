@@ -1,0 +1,66 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Publish to Github Pages
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+    - src/**
+    - .github/workflows/publish-docs.yml
+    - package.json
+    - yarn.lock
+    - paket.lock
+
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:            # Job-level permissions configuration starts here
+      contents: write       # 'write' access to repository contents
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    - uses: actions/setup-node@v4
+      with:
+        node-version: latest
+        check-latest: true
+    - name: Install Yarn
+      run: npm install -g yarn
+    - name: Restore dependencies
+      run: |
+        dotnet tool restore
+        dotnet paket restore
+        dotnet restore
+        yarn install
+    - name: Build dotnet projects
+      run: dotnet build --no-restore
+    - name: Build docs
+      run: yarn build
+    - name: Deploy docs
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+        allow_empty_commit: true
